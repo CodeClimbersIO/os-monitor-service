@@ -1,11 +1,11 @@
 [package]
-name = "os-monitor-service"
+name = "os_monitor_service"
 version = "0.1.0"
 edition = "2021"
 authors = ["Paul Hovley <rphovley@gmail.com>"]
 description = "OS level monitor for recording window focus and input events from os_monitor"
 license = "MIT"
-repository = "https://github.com/CodeClimbersIO/os-monitor"
+repository = "https://github.com/CodeClimbersIO/os-monitor-service"
 
 [dependencies]
 dirs = "5.0.1"
