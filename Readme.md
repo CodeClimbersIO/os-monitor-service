@@ -1,6 +1,6 @@
 # Monitoring Service
 
-The monitoring service is a Rust application that runs as a background service to record user activity data. It works in conjunction with the [monitor](../monitor) crate to track and store activity metrics while maintaining user privacy.
+The monitoring service is a Rust application that runs as a background service to record user activity data. It works in conjunction with the [os-monitor](https://github.com/CodeClimbersIO/os-monitor) crate to track and store activity metrics while maintaining user privacy.
 
 ## Overview
 
@@ -16,7 +16,6 @@ The monitoring service:
 
 - Rust toolchain (install via [rustup](https://rustup.rs/))
 - SQLite
-- The [monitor](../monitor) crate built and available
 
 ### Building and Running
 
@@ -27,17 +26,18 @@ The monitoring service:
    cargo install sqlx-cli
    ```
 
-4. Create and run migrations:
+4. Copy .env.example to .env and fill in the values. This is only used to allow sqlx to type check the queries. Not used at runtime.   
+5. Create and run migrations:
    ```bash
    # Run all pending migrations
    sqlx migrate run
 
    ```
 
-5. Build the project:
+6. Build the project:
    ```bash
    cargo build   ```
-6. Run the service:   ```bash
+7. Run the service:   ```bash
    cargo watch -x run  ```
 
 Refer to `main.rs` for more information on how the service is run.
