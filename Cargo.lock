@@ -783,20 +783,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "monitoring-service"
-version = "0.1.0"
-dependencies = [
- "dirs",
- "dotenv",
- "once_cell",
- "os-monitor",
- "parking_lot",
- "sqlx",
- "time",
- "tokio",
-]
-
-[[package]]
 name = "nix"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -903,6 +889,20 @@ dependencies = [
  "once_cell",
  "serde",
  "thiserror 2.0.8",
+]
+
+[[package]]
+name = "os-monitor-service"
+version = "0.1.0"
+dependencies = [
+ "dirs",
+ "dotenv",
+ "once_cell",
+ "os-monitor",
+ "parking_lot",
+ "sqlx",
+ "time",
+ "tokio",
 ]
 
 [[package]]

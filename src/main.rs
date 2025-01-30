@@ -3,8 +3,8 @@ use std::{sync::Arc, time::Duration};
 
 use dotenv::dotenv;
 
-use monitoring_service::initialize_monitoring_service;
 use os_monitor::{detect_changes, initialize_monitor, Monitor};
+use os_monitor_service::initialize_monitoring_service;
 use tokio::{self, time::sleep};
 
 #[tokio::main]
