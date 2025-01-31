@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO activity_state (state, app_switches, start_time, end_time) \n        VALUES (?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "0fc8654a2d8f41dc6a4248f8e89e5535cffe42a59d4b4463a226a78ca46d3488"
+}

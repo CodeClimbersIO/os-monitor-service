@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM activity WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "activity_type",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "app_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "app_window_title",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 4,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "timestamp",
+        "ordinal": 5,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "url",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "30f459e1778dbcf8c2291fd9283dd01a76482a9bc9ba46f97c28fbb2561940f3"
+}

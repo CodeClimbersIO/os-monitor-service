@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM activity_state ORDER BY id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "state",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "app_switches",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "start_time",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "end_time",
+        "ordinal": 4,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 5,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2968f6550c0af4b93c8c8fd615b40d32c5b9fad661d8893e2dc1b721c1185a02"
+}

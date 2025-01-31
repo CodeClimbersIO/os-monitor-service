@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM activity_state WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "state",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "app_switches",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "start_time",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "end_time",
+        "ordinal": 4,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 5,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9f5e912a9514231fdad0098f9b9c44bb46c34fcf19b27d82704173187f7985be"
+}
