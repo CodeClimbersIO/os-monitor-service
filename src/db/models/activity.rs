@@ -1,6 +1,8 @@
-use os_monitor::WindowEvent;
+use os_monitor::{KeyboardEvent, MouseEvent, WindowEvent};
 use sqlx::Row;
 use time::OffsetDateTime;
+
+use crate::db::types::Platform;
 
 #[derive(Debug, sqlx::Type, PartialEq, Clone)]
 #[sqlx(type_name = "TEXT", rename_all = "UPPERCASE")]
@@ -30,6 +32,7 @@ pub struct Activity {
     pub app_name: Option<String>,
     pub app_window_title: Option<String>,
     pub url: Option<String>,
+    pub platform: Platform,
 }
 
 impl<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> for Activity {
@@ -42,6 +45,7 @@ impl<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> for Activity {
             app_name: row.try_get("app_name")?,
             app_window_title: row.try_get("app_window_title")?,
             url: row.try_get("url")?,
+            platform: row.try_get("platform")?,
         })
     }
 }
@@ -53,6 +57,7 @@ impl Activity {
         app_window_title: Option<String>,
         url: Option<String>,
         timestamp: OffsetDateTime,
+        platform: Platform,
     ) -> Self {
         Activity {
             id: None,
@@ -62,6 +67,7 @@ impl Activity {
             app_name,
             app_window_title,
             url,
+            platform,
         }
     }
 
@@ -72,35 +78,41 @@ impl Activity {
             Some(event.window_title.clone()),
             event.url.clone(),
             OffsetDateTime::now_utc(),
+            event.platform.into(),
         )
     }
 
-    pub fn create_mouse_activity() -> Self {
+    pub fn create_mouse_activity(event: &MouseEvent) -> Self {
         Self::new(
             ActivityType::Mouse,
             None,
             None,
             None,
             OffsetDateTime::now_utc(),
+            event.platform.into(),
         )
     }
 
-    pub fn create_keyboard_activity() -> Self {
+    pub fn create_keyboard_activity(event: &KeyboardEvent) -> Self {
         Self::new(
             ActivityType::Keyboard,
             None,
             None,
             None,
             OffsetDateTime::now_utc(),
+            event.platform.into(),
         )
     }
 
     #[cfg(test)]
     pub fn __create_test_window() -> Self {
+        use os_monitor::Platform;
+
         Self::create_window_activity(&WindowEvent {
             app_name: "Cursor".to_string(),
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: None,
+            platform: Platform::Mac,
         })
     }
 }

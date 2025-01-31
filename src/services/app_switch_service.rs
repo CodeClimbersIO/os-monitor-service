@@ -48,7 +48,7 @@ impl AppSwitchState {
 mod tests {
     use time::OffsetDateTime;
 
-    use crate::db::models::ActivityType;
+    use crate::db::{models::ActivityType, types::Platform};
 
     use super::*;
 
@@ -61,6 +61,7 @@ mod tests {
             Some("window1".to_string()),
             None,
             OffsetDateTime::now_utc(),
+            Platform::Mac,
         ));
         std::thread::sleep(Duration::from_millis(2));
         app_switch_state.new_window_activity(Activity::new(
@@ -69,6 +70,7 @@ mod tests {
             Some("window2".to_string()),
             None,
             OffsetDateTime::now_utc(),
+            Platform::Mac,
         ));
         std::thread::sleep(Duration::from_millis(2));
         app_switch_state.new_window_activity(Activity::new(
@@ -77,6 +79,7 @@ mod tests {
             Some("window3".to_string()),
             None,
             OffsetDateTime::now_utc(),
+            Platform::Mac,
         ));
         std::thread::sleep(Duration::from_millis(2));
         app_switch_state.new_window_activity(Activity::new(
@@ -85,6 +88,7 @@ mod tests {
             Some("window4".to_string()),
             None,
             OffsetDateTime::now_utc(),
+            Platform::Mac,
         ));
         std::thread::sleep(Duration::from_millis(2));
         app_switch_state.new_window_activity(Activity::new(
@@ -93,6 +97,7 @@ mod tests {
             Some("window5".to_string()),
             None,
             OffsetDateTime::now_utc(),
+            Platform::Mac,
         ));
         assert_eq!(app_switch_state.app_switches, 2);
     }
@@ -107,6 +112,7 @@ mod tests {
                 Some(format!("window{}", i)),
                 None,
                 OffsetDateTime::now_utc(),
+                Platform::Mac,
             ));
         }
         assert_eq!(app_switch_state.app_switches, 0);
@@ -121,6 +127,7 @@ mod tests {
             Some("window1".to_string()),
             None,
             OffsetDateTime::now_utc(),
+            Platform::Mac,
         ));
         std::thread::sleep(Duration::from_millis(2));
         app_switch_state.new_window_activity(Activity::new(
@@ -129,6 +136,7 @@ mod tests {
             Some("window2".to_string()),
             None,
             OffsetDateTime::now_utc(),
+            Platform::Mac,
         ));
         app_switch_state.reset_app_switches();
         assert_eq!(app_switch_state.app_switches, 0);

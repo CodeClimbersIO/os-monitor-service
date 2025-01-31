@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use once_cell::sync::Lazy;
-use os_monitor::{Monitor, WindowEvent};
+use os_monitor::{KeyboardEvent, Monitor, MouseEvent, WindowEvent};
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
 
@@ -18,6 +18,7 @@ use self::activity_state_service::ActivityPeriod;
 
 use super::{
     activity_state_service::{self, ActivityStateService},
+    app_service::AppService,
     app_switch_service::AppSwitchState,
 };
 
@@ -33,13 +34,15 @@ static APP_SWITCH_STATE: Lazy<Mutex<AppSwitchState>> =
 pub struct ActivityService {
     activities_repo: ActivityRepo,
     activity_state_repo: ActivityStateRepo,
+    app_service: AppService,
     event_sender: mpsc::UnboundedSender<ActivityEvent>,
     activity_state_service: ActivityStateService,
 }
 
+#[derive(Debug)]
 enum ActivityEvent {
-    Keyboard(),
-    Mouse(),
+    Keyboard(KeyboardEvent),
+    Mouse(MouseEvent),
     Window(WindowEvent),
 }
 
@@ -49,12 +52,13 @@ impl ActivityService {
         let activities_repo = ActivityRepo::new(pool.clone());
         let activity_state_repo = ActivityStateRepo::new(pool.clone());
         let activity_state_service = ActivityStateService::new(pool.clone());
-
+        let app_service = AppService::new(pool.clone());
         let service = ActivityService {
             activities_repo,
             activity_state_repo,
-            activity_state_service,
+            app_service,
             event_sender: sender,
+            activity_state_service,
         };
         let callback_service_clone = service.clone();
         // let activity_state_clone = service.clone();
@@ -62,12 +66,14 @@ impl ActivityService {
         tokio::spawn(async move {
             while let Some(event) = receiver.recv().await {
                 match event {
-                    ActivityEvent::Keyboard() => {
-                        callback_service_clone.handle_keyboard_activity().await
+                    ActivityEvent::Keyboard(event) => {
+                        callback_service_clone.handle_keyboard_activity(event).await
                     }
-                    ActivityEvent::Mouse() => callback_service_clone.handle_mouse_activity().await,
-                    ActivityEvent::Window(e) => {
-                        callback_service_clone.handle_window_activity(e).await
+                    ActivityEvent::Mouse(event) => {
+                        callback_service_clone.handle_mouse_activity(event).await
+                    }
+                    ActivityEvent::Window(event) => {
+                        callback_service_clone.handle_window_activity(event).await
                     }
                 }
             }
@@ -76,15 +82,15 @@ impl ActivityService {
         service
     }
 
-    async fn handle_keyboard_activity(&self) {
-        let activity = Activity::create_keyboard_activity();
+    async fn handle_keyboard_activity(&self, event: KeyboardEvent) {
+        let activity = Activity::create_keyboard_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             eprintln!("Failed to save keyboard activity: {}", err);
         }
     }
 
-    async fn handle_mouse_activity(&self) {
-        let activity = Activity::create_mouse_activity();
+    async fn handle_mouse_activity(&self, event: MouseEvent) {
+        let activity = Activity::create_mouse_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             eprintln!("Failed to save mouse activity: {}", err);
         }
@@ -95,23 +101,31 @@ impl ActivityService {
         if let Err(err) = self.save_activity(&activity).await {
             eprintln!("Failed to save window activity: {}", err);
         }
+        self.app_service.handle_window_event(&event).await;
     }
 
     pub fn register_callbacks(&self, event_callback_service: &Arc<Monitor>) {
         let sender = self.event_sender.clone();
-        event_callback_service.register_keyboard_callback(Box::new(move |_| {
-            let _ = sender.send(ActivityEvent::Keyboard());
+        event_callback_service.register_keyboard_callback(Box::new(move |event| {
+            let event = event.first();
+            if let Some(event) = event {
+                let _ = sender.send(ActivityEvent::Keyboard(event.clone()));
+            }
         }));
 
         let sender = self.event_sender.clone();
-        event_callback_service.register_mouse_callback(Box::new(move |_| {
-            let _ = sender.send(ActivityEvent::Mouse());
+        event_callback_service.register_mouse_callback(Box::new(move |event| {
+            let event = event.first();
+            if let Some(event) = event {
+                let _ = sender.send(ActivityEvent::Mouse(event.clone()));
+            }
         }));
 
         let sender = self.event_sender.clone();
         event_callback_service.register_window_callback(Box::new(move |event| {
             log("register_window_callback");
             let mut app_switch_state = APP_SWITCH_STATE.lock();
+
             let activity = Activity::create_window_activity(&event);
             app_switch_state.new_window_activity(activity);
 
@@ -249,7 +263,7 @@ pub async fn start_monitoring(db_path: String) -> ActivityService {
 #[cfg(test)]
 mod tests {
 
-    use os_monitor::WindowEvent;
+    use os_monitor::{Platform, WindowEvent};
     use time::OffsetDateTime;
 
     use super::*;
@@ -289,6 +303,7 @@ mod tests {
             app_name: "Cursor".to_string(),
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: None,
+            platform: Platform::Mac,
         };
         activity_service.handle_window_activity(event).await;
 
@@ -302,7 +317,11 @@ mod tests {
     async fn test_on_keyboard_event() {
         let pool = db_manager::create_test_db().await;
         let activity_service = ActivityService::new(pool);
-        activity_service.handle_keyboard_activity().await;
+        let event = KeyboardEvent {
+            key_code: 1,
+            platform: Platform::Mac,
+        };
+        activity_service.handle_keyboard_activity(event).await;
 
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
