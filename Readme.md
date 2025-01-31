@@ -26,18 +26,19 @@ The monitoring service:
    cargo install sqlx-cli
    ```
 
-4. Copy .env.example to .env and fill in the values. This is only used to allow sqlx to type check the queries. Not used at runtime.   
-5. Create and run migrations:
+4. Create and run migrations:
    ```bash
    # Run all pending migrations
    sqlx migrate run
-
    ```
-
+5. Prepare sqlx query type checking:
+   ```bash
+   cargo sqlx prepare --database-url sqlite:/{home_dir}/.codeclimbers/codeclimbers-desktop.sqlite
+   ```
 6. Build the project:
    ```bash
    cargo build   ```
-7. Run the service:   ```bash
+8. Run the service:   ```bash
    cargo watch -x run  ```
 
 Refer to `main.rs` for more information on how the service is run.
@@ -132,8 +133,9 @@ CREATE TABLE activity (
 To create a new migration:
 1. Use `sqlx migrate add` to create the file
 2. Add your SQL commands
-3. Test the migration locally
-4. Commit both the migration file and updated `sqlx-data.json`
+3. Run `cargo sqlx prepare --database-url sqlite:/{home_dir}/.codeclimbers/codeclimbers-desktop.sqlite` to update the query type checking
+4. Test the migration locally
+5. Commit both the migration file and updated `.sqlx/query-*.json`
 
 ### Running Tests
 
