@@ -1,3 +1,4 @@
+use colored::*;
 use std::{sync::Arc, time::Duration};
 
 use once_cell::sync::Lazy;
@@ -83,6 +84,7 @@ impl ActivityService {
     }
 
     async fn handle_keyboard_activity(&self, event: KeyboardEvent) {
+        println!("{}: {:?}", "handle_keyboard_activity".green(), event);
         let activity = Activity::create_keyboard_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             eprintln!("Failed to save keyboard activity: {}", err);
@@ -90,6 +92,7 @@ impl ActivityService {
     }
 
     async fn handle_mouse_activity(&self, event: MouseEvent) {
+        println!("{}: {:?}", "handle_mouse_activity".green(), event);
         let activity = Activity::create_mouse_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             eprintln!("Failed to save mouse activity: {}", err);
@@ -97,6 +100,7 @@ impl ActivityService {
     }
 
     pub async fn handle_window_activity(&self, event: WindowEvent) {
+        println!("{}: {:?}", "handle_window_activity".green(), event);
         let activity = Activity::create_window_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             eprintln!("Failed to save window activity: {}", err);
@@ -163,6 +167,37 @@ impl ActivityService {
             .await
     }
 
+    async fn create_idle_activity_state(
+        &self,
+        activity_period: ActivityPeriod,
+    ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
+        self.activity_state_repo
+            .create_idle_activity_state(&activity_period)
+            .await
+            .expect("Failed to create idle activity state");
+
+        let activity_state = self
+            .activity_state_service
+            .get_last_activity_state()
+            .await
+            .expect("Failed to get activity state");
+
+        if let Some(activity_state_id) = activity_state.id {
+            self.app_service.create_idle_tag(activity_state_id).await
+        } else {
+            eprintln!("Cannot create tags: activity state has no ID");
+            Err(sqlx::Error::RowNotFound)
+        }
+    }
+
+    /**
+     * Creates an activity state from a list of activities.
+     * If the activities are empty, it creates an idle activity state.
+     * It also creates an idle tag for the idle activity state.
+     * If the activities are not empty, it creates an active activity state.
+     * For tags, we get all matching tags for the activites and create those tags for the activity state.
+     * If there were no window activities, we use the last window activity to create the tags (writing code to a single file for more than 30 seconds).
+     */
     async fn create_activity_state_from_activities(
         &self,
         activities: Vec<Activity>,
@@ -209,22 +244,23 @@ impl ActivityService {
                 .activity_state_service
                 .get_last_activity_state()
                 .await
-                .expect("Failed to get activity state");
+                .expect(&"Failed to get activity state".red().to_string());
 
             // Only create tags if we have a valid activity state ID
             if let Some(activity_state_id) = activity_state.id {
                 self.app_service
                     .create_tags_from_activities(&activities, activity_state_id)
                     .await
-                    .expect("Failed to create activity state tags");
+                    .expect(&"Failed to create activity state tags".red().to_string());
             } else {
-                eprintln!("Cannot create tags: activity state has no ID");
+                eprintln!("{}", "Cannot create tags: activity state has no ID".red());
             }
             {
                 let mut app_switch = APP_SWITCH_STATE.lock();
                 app_switch.reset_app_switches();
             } // lock is released here
             log_indent("reset_app_switches", 1, "green");
+            println!("{}", "activity_state_created".blue());
             result
         }
     }
@@ -248,15 +284,7 @@ impl ActivityService {
     pub fn start_activity_state_loop(&self, activity_state_interval: Duration) {
         let activity_service_clone = self.clone();
         let activity_state_service_clone = self.activity_state_service.clone();
-        let app_service_clone = self.app_service.clone();
         tokio::spawn(async move {
-            if let Err(e) = app_service_clone
-                .import_apps_from_csv("src/services/apps.csv")
-                .await
-            {
-                eprintln!("Failed to import apps from CSV: {}", e);
-                // Handle error appropriately
-            }
             let mut wait_interval = tokio::time::interval(activity_state_interval);
             loop {
                 log("tick");
@@ -274,7 +302,6 @@ impl ActivityService {
                     .create_activity_state_from_activities(activities, activity_period)
                     .await
                     .expect("Failed to create activity state");
-                log("activity_state_created");
             }
         });
     }

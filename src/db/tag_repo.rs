@@ -14,38 +14,12 @@ impl TagRepo {
         Self { pool }
     }
 
-    pub async fn ensure_default_tag(
-        &self,
-        tag_name: &str,
-        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
-    ) -> Result<(), sqlx::Error> {
-        sqlx::query!(
-            r#"
-            INSERT INTO tag (name, tag_type)
-            VALUES (?, 'default')
-            ON CONFLICT (name, tag_type) DO UPDATE SET
-                tag_type = 'default'
-                WHERE tag.name = ?
-            "#,
-            tag_name,
-            tag_name
-        )
-        .execute(&mut **tx)
-        .await?;
+    pub async fn get_tag_by_name(&self, name: &str) -> Result<Tag, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
 
-        Ok(())
-    }
-
-    pub async fn get_tag_by_name(
-        &self,
-        name: &str,
-        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
-    ) -> Result<Option<i64>, sqlx::Error> {
-        let record = sqlx::query!("SELECT id FROM tag WHERE name = ?", name)
-            .fetch_one(&mut **tx)
-            .await?;
-
-        Ok(record.id)
+        sqlx::query_as!(Tag, "SELECT * FROM tag WHERE name = ?", name)
+            .fetch_one(&mut *conn)
+            .await
     }
 
     pub async fn get_tags_by_app(&self, apps: &Vec<App>) -> Result<Vec<Tag>, sqlx::Error> {
@@ -74,27 +48,15 @@ impl TagRepo {
         query.fetch_all(&mut *conn).await
     }
 
-    pub async fn create_app_tag_relation(
-        &self,
-        app_id: i64,
-        tag_id: i64,
-        tx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
-    ) -> Result<(), sqlx::Error> {
+    pub async fn create_tag(&self, name: &str, tag_type: &str) -> Result<(), sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
         sqlx::query!(
-            r#"
-            INSERT INTO app_tag (app_id, tag_id, weight)
-            VALUES (?, ?, 1.0)
-            ON CONFLICT (app_id, tag_id) DO UPDATE SET
-                weight = 1.0
-                WHERE app_tag.app_id = excluded.app_id
-                AND app_tag.tag_id = excluded.tag_id
-            "#,
-            app_id,
-            tag_id
+            "INSERT INTO tag (name, tag_type) VALUES (?, ?)",
+            name,
+            tag_type
         )
-        .execute(&mut **tx)
+        .execute(&mut *conn)
         .await?;
-
         Ok(())
     }
 
@@ -102,7 +64,7 @@ impl TagRepo {
         &self,
         activity_state_id: i64,
         tags: &Vec<Tag>,
-    ) -> Result<(), sqlx::Error> {
+    ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
         let unique_tags = tags
             .iter()
@@ -126,8 +88,24 @@ impl TagRepo {
             query = query.bind(activity_state_id).bind(tag);
         }
 
-        query.execute(&mut *conn).await?;
-        Ok(())
+        query.execute(&mut *conn).await
+    }
+
+    pub async fn create_app_tag(
+        &self,
+        app_id: i64,
+        tag_id: i64,
+        weight: f32,
+    ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+        sqlx::query!(
+            "INSERT INTO app_tag (app_id, tag_id, weight) VALUES (?, ?, ?)",
+            app_id,
+            tag_id,
+            weight
+        )
+        .execute(&mut *conn)
+        .await
     }
 
     #[cfg(test)]

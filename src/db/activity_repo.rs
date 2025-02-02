@@ -1,6 +1,6 @@
 // activity repo is responsible for all the database operations related to activities. Makes use of the db manager to get the pool and execute queries.
 
-use super::models::Activity;
+use super::models::{Activity, ActivityType};
 #[derive(Clone)]
 pub struct ActivityRepo {
     pool: sqlx::SqlitePool,
@@ -41,6 +41,13 @@ impl ActivityRepo {
         )
         .fetch_one(&mut *conn)
         .await
+    }
+
+    pub async fn get_last_activity_by_type(&self, activity_type: ActivityType) -> Result<Activity, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+        sqlx::query_as!(Activity, "SELECT * FROM activity WHERE activity_type = ? ORDER BY timestamp DESC LIMIT 1", activity_type as _)
+            .fetch_one(&mut *conn)
+            .await
     }
 
     // get the activities since the last activity state. If none, return an empty vector.

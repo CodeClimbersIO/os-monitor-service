@@ -9,6 +9,13 @@ impl AppRepo {
         AppRepo { pool }
     }
 
+    pub async fn get_last_created_app(&self) -> Result<App, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+        sqlx::query_as!(App, "SELECT * FROM app ORDER BY created_at DESC LIMIT 1",)
+            .fetch_one(&mut *conn)
+            .await
+    }
+
     pub async fn save_app(
         &self,
         app: &App,
