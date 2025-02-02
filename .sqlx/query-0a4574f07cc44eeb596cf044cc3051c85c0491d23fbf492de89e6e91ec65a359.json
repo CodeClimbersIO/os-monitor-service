@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT * FROM activity WHERE timestamp > (SELECT start_time FROM activity_state WHERE id = (SELECT MAX(id) FROM activity_state))\n            ORDER BY timestamp ASC\n            ",
+  "query": "SELECT id, created_at, timestamp, activity_type as \"activity_type: _\", \n            app_name, app_window_title, url, platform as \"platform: _\" \n            FROM activity WHERE id = ?",
   "describe": {
     "columns": [
       {
@@ -9,29 +9,29 @@
         "type_info": "Integer"
       },
       {
-        "name": "activity_type",
-        "ordinal": 1,
-        "type_info": "Text"
-      },
-      {
-        "name": "app_name",
-        "ordinal": 2,
-        "type_info": "Text"
-      },
-      {
-        "name": "app_window_title",
-        "ordinal": 3,
-        "type_info": "Text"
-      },
-      {
         "name": "created_at",
-        "ordinal": 4,
+        "ordinal": 1,
         "type_info": "Datetime"
       },
       {
         "name": "timestamp",
-        "ordinal": 5,
+        "ordinal": 2,
         "type_info": "Datetime"
+      },
+      {
+        "name": "activity_type: _",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "app_name",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "app_window_title",
+        "ordinal": 5,
+        "type_info": "Text"
       },
       {
         "name": "url",
@@ -39,24 +39,24 @@
         "type_info": "Text"
       },
       {
-        "name": "platform",
+        "name": "platform: _",
         "ordinal": 7,
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
       false,
-      true,
-      true,
       false,
       false,
+      true,
+      true,
       true,
       false
     ]
   },
-  "hash": "547387f91c63cd9c16245ff2a4cc0bf508a930cc6d1bbea1172d905aa4fe24de"
+  "hash": "0a4574f07cc44eeb596cf044cc3051c85c0491d23fbf492de89e6e91ec65a359"
 }

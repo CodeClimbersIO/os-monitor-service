@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT * FROM activity WHERE id = ?",
+  "query": "SELECT id, name, platform, is_browser, created_at, updated_at\n            FROM app WHERE name = ? OR name = ?",
   "describe": {
     "columns": [
       {
@@ -9,19 +9,19 @@
         "type_info": "Integer"
       },
       {
-        "name": "activity_type",
+        "name": "name",
         "ordinal": 1,
         "type_info": "Text"
       },
       {
-        "name": "app_name",
+        "name": "platform",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "app_window_title",
+        "name": "is_browser",
         "ordinal": 3,
-        "type_info": "Text"
+        "type_info": "Bool"
       },
       {
         "name": "created_at",
@@ -29,28 +29,22 @@
         "type_info": "Datetime"
       },
       {
-        "name": "timestamp",
+        "name": "updated_at",
         "ordinal": 5,
         "type_info": "Datetime"
-      },
-      {
-        "name": "url",
-        "ordinal": 6,
-        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
-      false,
-      false,
-      true,
       true,
       false,
       false,
-      true
+      false,
+      false,
+      false
     ]
   },
-  "hash": "30f459e1778dbcf8c2291fd9283dd01a76482a9bc9ba46f97c28fbb2561940f3"
+  "hash": "9408d21c416c5755cbf0437c8a5aa6357451a123272b65d3d95c13e257a24d6e"
 }

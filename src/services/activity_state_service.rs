@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use time::OffsetDateTime;
 
-use crate::{db::activity_state_repo::ActivityStateRepo, utils::log};
+use crate::{
+    db::{activity_state_repo::ActivityStateRepo, models::ActivityState},
+    utils::log,
+};
 
 #[derive(Clone, Debug)]
 pub struct ActivityPeriod {
@@ -20,6 +23,10 @@ impl ActivityStateService {
         ActivityStateService {
             activity_state_repo: ActivityStateRepo::new(pool.clone()),
         }
+    }
+
+    pub async fn get_last_activity_state(&self) -> Result<ActivityState, sqlx::Error> {
+        self.activity_state_repo.get_last_activity_state().await
     }
 
     pub async fn get_next_activity_state_times(&self, interval: Duration) -> ActivityPeriod {

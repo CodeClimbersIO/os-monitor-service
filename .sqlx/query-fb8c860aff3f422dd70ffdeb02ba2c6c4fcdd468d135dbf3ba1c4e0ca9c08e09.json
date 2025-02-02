@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO app (name, platform, is_browser) \n            VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "fb8c860aff3f422dd70ffdeb02ba2c6c4fcdd468d135dbf3ba1c4e0ca9c08e09"
+}

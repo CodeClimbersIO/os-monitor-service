@@ -105,11 +105,11 @@ impl Activity {
     }
 
     #[cfg(test)]
-    pub fn __create_test_window() -> Self {
+    pub fn __create_test_window(app_name: Option<String>) -> Self {
         use os_monitor::Platform;
 
         Self::create_window_activity(&WindowEvent {
-            app_name: "Cursor".to_string(),
+            app_name: app_name.unwrap_or("Cursor".to_string()),
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: None,
             platform: Platform::Mac,

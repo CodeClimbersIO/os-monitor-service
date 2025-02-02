@@ -96,7 +96,7 @@ impl ActivityService {
         }
     }
 
-    async fn handle_window_activity(&self, event: WindowEvent) {
+    pub async fn handle_window_activity(&self, event: WindowEvent) {
         let activity = Activity::create_window_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             eprintln!("Failed to save window activity: {}", err);
@@ -155,7 +155,9 @@ impl ActivityService {
             .await
     }
 
-    async fn get_activities_since_last_activity_state(&self) -> Result<Vec<Activity>, sqlx::Error> {
+    pub async fn get_activities_since_last_activity_state(
+        &self,
+    ) -> Result<Vec<Activity>, sqlx::Error> {
         self.activities_repo
             .get_activities_since_last_activity_state()
             .await
@@ -202,6 +204,22 @@ impl ActivityService {
                 .create_active_activity_state(context_switches, &activity_period)
                 .await;
             log_indent(&format!("created activity state"), 1, "green");
+
+            let activity_state = self
+                .activity_state_service
+                .get_last_activity_state()
+                .await
+                .expect("Failed to get activity state");
+
+            // Only create tags if we have a valid activity state ID
+            if let Some(activity_state_id) = activity_state.id {
+                self.app_service
+                    .create_tags_from_activities(&activities, activity_state_id)
+                    .await
+                    .expect("Failed to create activity state tags");
+            } else {
+                eprintln!("Cannot create tags: activity state has no ID");
+            }
             {
                 let mut app_switch = APP_SWITCH_STATE.lock();
                 app_switch.reset_app_switches();
@@ -230,7 +248,15 @@ impl ActivityService {
     pub fn start_activity_state_loop(&self, activity_state_interval: Duration) {
         let activity_service_clone = self.clone();
         let activity_state_service_clone = self.activity_state_service.clone();
+        let app_service_clone = self.app_service.clone();
         tokio::spawn(async move {
+            if let Err(e) = app_service_clone
+                .import_apps_from_csv("src/services/apps.csv")
+                .await
+            {
+                eprintln!("Failed to import apps from CSV: {}", e);
+                // Handle error appropriately
+            }
             let mut wait_interval = tokio::time::interval(activity_state_interval);
             loop {
                 log("tick");
@@ -276,7 +302,7 @@ mod tests {
     async fn test_activity_service() {
         let pool = db_manager::create_test_db().await;
         let activity_service = ActivityService::new(pool);
-        let activity = Activity::__create_test_window();
+        let activity = Activity::__create_test_window(None);
 
         activity_service.save_activity(&activity).await.unwrap();
     }
@@ -285,7 +311,7 @@ mod tests {
     async fn test_get_activity() {
         let pool = db_manager::create_test_db().await;
         let activity_service = ActivityService::new(pool);
-        let activity = Activity::__create_test_window();
+        let activity = Activity::__create_test_window(None);
         activity_service.save_activity(&activity).await.unwrap();
 
         let activity = activity_service.get_activity(1).await.unwrap();
@@ -353,7 +379,7 @@ mod tests {
     async fn test_create_activity_state_from_activities_active() {
         let pool = db_manager::create_test_db().await;
         let activity_service = ActivityService::new(pool);
-        let activities = vec![Activity::__create_test_window()];
+        let activities = vec![Activity::__create_test_window(None)];
         let result = activity_service
             .create_activity_state_from_activities(
                 activities,
@@ -376,17 +402,17 @@ mod tests {
         let now = OffsetDateTime::now_utc();
 
         // we have an activity at time 2 seconds ago.
-        let mut activity = Activity::__create_test_window();
+        let mut activity = Activity::__create_test_window(None);
         activity.timestamp = Some(now - Duration::from_secs(2));
         activity_service.save_activity(&activity).await.unwrap();
 
         // we have an activity at time 1 second ago.
-        let mut activity = Activity::__create_test_window();
+        let mut activity = Activity::__create_test_window(None);
         activity.timestamp = Some(now - Duration::from_secs(1));
         activity_service.save_activity(&activity).await.unwrap();
 
         // we have an activity at time 0 seconds ago.
-        let mut activity = Activity::__create_test_window();
+        let mut activity = Activity::__create_test_window(None);
         activity.timestamp = Some(now);
         activity_service.save_activity(&activity).await.unwrap();
 

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO app (name, platform, is_browser)\n            VALUES (?, ?, ?)\n            ON CONFLICT (name, platform) DO UPDATE SET\n                is_browser = excluded.is_browser\n                WHERE app.name = excluded.name\n                AND app.platform = excluded.platform\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "69dbe690e4d82bb7a9a2afe930f737d6bca27b6c2df6a23a7703da29e01eea18"
+}

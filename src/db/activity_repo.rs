@@ -66,7 +66,7 @@ mod tests {
     async fn test_activity_repo() {
         let pool = db_manager::create_test_db().await;
         let activity_repo = ActivityRepo::new(pool);
-        let activity = Activity::__create_test_window();
+        let activity = Activity::__create_test_window(None);
         activity_repo.save_activity(&activity).await.unwrap();
     }
 

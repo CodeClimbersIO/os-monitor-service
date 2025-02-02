@@ -42,18 +42,8 @@ impl App {
             is_browser: event.url.is_some(),
         }
     }
-    pub fn __create_test_app() -> App {
-        App {
-            id: None,
-            created_at: None,
-            updated_at: None,
-            name: "Test App".to_string(),
-            platform: Platform::Mac,
-            is_browser: false,
-        }
-    }
 
-    fn get_domain_from_url(url: &str) -> String {
+    pub fn get_domain_from_url(url: &str) -> String {
         if let Ok(parsed) = url::Url::parse(url) {
             if let Some(domain) = parsed.host_str() {
                 // Remove 'www.' prefix if present
@@ -72,6 +62,33 @@ impl App {
             .unwrap_or(url);
 
         domain.to_string()
+    }
+
+    #[cfg(test)]
+    pub fn __create_test_app() -> App {
+        App {
+            id: None,
+            created_at: None,
+            updated_at: None,
+            name: "Test App".to_string(),
+            platform: Platform::Mac,
+            is_browser: false,
+        }
+    }
+
+    #[cfg(test)]
+    pub fn __create_test_apps(names: &Vec<String>) -> Vec<App> {
+        names
+            .iter()
+            .map(|name| App {
+                id: None,
+                created_at: None,
+                updated_at: None,
+                name: name.to_string(),
+                platform: Platform::Mac,
+                is_browser: false,
+            })
+            .collect()
     }
 }
 

@@ -1,12 +1,12 @@
 CREATE TABLE IF NOT EXISTS tag (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
-  category TEXT,
   parent_tag_id INTEGER,
-  type TEXT NOT NULL,
+  tag_type TEXT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (parent_tag_id) REFERENCES tag(id)
+  FOREIGN KEY (parent_tag_id) REFERENCES tag(id),
+  UNIQUE(name, tag_type)
 );
 
 CREATE TABLE IF NOT EXISTS activity_state_tag (
@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS activity_state_tag (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (activity_state_id) REFERENCES activity_state(id),
-  FOREIGN KEY (tag_id) REFERENCES tag(id)
+  FOREIGN KEY (tag_id) REFERENCES tag(id),
+  UNIQUE(activity_state_id, tag_id)
 );
 
 CREATE TABLE IF NOT EXISTS app (
@@ -35,5 +36,8 @@ CREATE TABLE IF NOT EXISTS app_tag (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (app_id) REFERENCES app(id),
-  FOREIGN KEY (tag_id) REFERENCES tag(id)
+  FOREIGN KEY (tag_id) REFERENCES tag(id),
+  UNIQUE(app_id, tag_id)
 );
+
+ALTER TABLE activity ADD COLUMN platform TEXT NOT NULL CHECK (platform IN ('MAC', 'WINDOWS', 'LINUX', 'IOS', 'ANDROID', 'UNKNOWN')) DEFAULT 'MAC';
