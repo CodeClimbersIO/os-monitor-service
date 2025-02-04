@@ -6,8 +6,8 @@ use crate::services;
 
 static ACTIVITY_STATE_INTERVAL: Duration = Duration::from_secs(30); // every 30 seconds
 
-pub async fn initialize_monitoring_service(monitor: Arc<Monitor>) {
-    let activity_service = Arc::new(services::activities_service::start_monitoring().await);
+pub async fn initialize_monitoring_service(monitor: Arc<Monitor>, db_path: String) {
+    let activity_service = Arc::new(services::activities_service::start_monitoring(db_path).await);
     activity_service.register_callbacks(&monitor);
     activity_service.start_activity_state_loop(ACTIVITY_STATE_INTERVAL);
 }

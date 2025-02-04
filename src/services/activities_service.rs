@@ -240,8 +240,7 @@ impl ActivityService {
     }
 }
 
-pub async fn start_monitoring() -> ActivityService {
-    let db_path = db_manager::get_db_path();
+pub async fn start_monitoring(db_path: String) -> ActivityService {
     let db_manager = db_manager::DbManager::new(&db_path).await.unwrap();
 
     ActivityService::new(db_manager.pool)

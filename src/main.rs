@@ -4,7 +4,7 @@ use std::{sync::Arc, time::Duration};
 use dotenv::dotenv;
 
 use os_monitor::{detect_changes, initialize_monitor, Monitor};
-use os_monitor_service::{enable_log, initialize_monitoring_service, log};
+use os_monitor_service::{db::db_manager, enable_log, initialize_monitoring_service, log};
 use tokio::{self, time::sleep};
 
 #[tokio::main]
@@ -14,7 +14,8 @@ async fn main() {
     dotenv().ok();
 
     let monitor = Arc::new(Monitor::new());
-    initialize_monitoring_service(monitor.clone()).await;
+    let db_path = db_manager::get_default_db_path();
+    initialize_monitoring_service(monitor.clone(), db_path).await;
     initialize_monitor(monitor.clone()).expect("Failed to initialize monitor");
 
     tokio::time::sleep(Duration::from_millis(350)).await;

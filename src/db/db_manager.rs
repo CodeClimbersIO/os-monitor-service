@@ -6,7 +6,7 @@ pub struct DbManager {
     pub pool: Pool<Sqlite>,
 }
 
-pub fn get_db_path() -> String {
+pub fn get_default_db_path() -> String {
     let home_dir = dirs::home_dir().expect("Could not find home directory");
     home_dir
         .join(".codeclimbers")
