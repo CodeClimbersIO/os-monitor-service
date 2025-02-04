@@ -1,6 +1,6 @@
 [package]
 name = "os-monitor-service"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Paul Hovley <rphovley@gmail.com>"]
 description = "OS level monitor for recording window focus and input events from os_monitor"
@@ -16,6 +16,7 @@ time = { version = "0.3", features = ["serde"] }
 os-monitor = { version = "0.1.1"}
 parking_lot = "0.12"
 once_cell = "1.20.2"
+cc-logger = "0.1.0"
 
 [build-dependencies]
 sqlx = "0.8.2"

@@ -4,12 +4,13 @@ use std::{sync::Arc, time::Duration};
 use dotenv::dotenv;
 
 use os_monitor::{detect_changes, initialize_monitor, Monitor};
-use os_monitor_service::initialize_monitoring_service;
+use os_monitor_service::{enable_log, initialize_monitoring_service, log};
 use tokio::{self, time::sleep};
 
 #[tokio::main]
 async fn main() {
-    println!("starting activity service");
+    enable_log();
+    log("starting activity service");
     dotenv().ok();
 
     let monitor = Arc::new(Monitor::new());
