@@ -1,7 +1,5 @@
 use sqlx::{sqlite::SqlitePool, Pool, Sqlite};
 
-use crate::utils::log;
-
 pub struct DbManager {
     pub pool: Pool<Sqlite>,
 }
@@ -59,18 +57,18 @@ impl DbManager {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
         }
-        log::log(format!("database_url: {}", database_url).as_str());
+        log::info!("database_url: {}", database_url);
 
         // Debug information
-        log::log(format!("Attempting to open/create database at: {}", db_path).as_str());
+        log::info!("Attempting to open/create database at: {}", db_path);
 
         match std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .open(db_path)
         {
-            Ok(_) => log::log("Successfully created/opened database file"),
-            Err(e) => log::log(format!("Error creating/opening database file: {}", e).as_str()),
+            Ok(_) => log::info!("Successfully created/opened database file"),
+            Err(e) => log::error!("Error creating/opening database file: {}", e),
         }
 
         let pool = SqlitePool::connect(&database_url).await?;

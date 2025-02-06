@@ -5,13 +5,9 @@ use os_monitor::{Monitor, WindowEvent};
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
 
-use crate::{
-    db::{
-        activity_repo::ActivityRepo, activity_state_repo::ActivityStateRepo, db_manager,
-        models::Activity,
-    },
-    log,
-    utils::log::log_indent,
+use crate::db::{
+    activity_repo::ActivityRepo, activity_state_repo::ActivityStateRepo, db_manager,
+    models::Activity,
 };
 
 use self::activity_state_service::ActivityPeriod;
@@ -110,7 +106,7 @@ impl ActivityService {
 
         let sender = self.event_sender.clone();
         event_callback_service.register_window_callback(Box::new(move |event| {
-            log("register_window_callback");
+            log::info!("register_window_callback");
             let mut app_switch_state = APP_SWITCH_STATE.lock();
             let activity = Activity::create_window_activity(&event);
             app_switch_state.new_window_activity(activity);
@@ -153,46 +149,34 @@ impl ActivityService {
         activity_period: ActivityPeriod,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         // iterate over the activities to create the start, end, context_switches, and activity_state_type
-        log_indent(
-            &format!(
-                "create_activity_state_from_activities: {}",
-                activities.len()
-            ),
-            0,
-            "green",
+        log::info!(
+            "create_activity_state_from_activities: {}",
+            activities.len()
         );
 
         if activities.is_empty() {
-            log_indent("create_activity_state_from_activities: empty", 1, "green");
+            log::info!("create_activity_state_from_activities: empty");
             self.activity_state_repo
                 .create_idle_activity_state(&activity_period)
                 .await
         } else {
-            log_indent(
-                "create_activity_state_from_activities: not empty",
-                1,
-                "green",
-            );
+            log::info!("create_activity_state_from_activities: not empty");
             // First lock: Get the context switches
             let context_switches = {
                 let app_switch = APP_SWITCH_STATE.lock();
                 app_switch.app_switches.clone()
             }; // lock is released here
-            log_indent(
-                &format!("context_switches: {:?}", context_switches),
-                1,
-                "green",
-            );
+            log::info!("context_switches: {:?}", context_switches);
             let result = self
                 .activity_state_repo
                 .create_active_activity_state(context_switches, &activity_period)
                 .await;
-            log_indent(&format!("created activity state"), 1, "green");
+            log::info!("created activity state");
             {
                 let mut app_switch = APP_SWITCH_STATE.lock();
                 app_switch.reset_app_switches();
             } // lock is released here
-            log_indent("reset_app_switches", 1, "green");
+            log::info!("reset_app_switches");
             result
         }
     }
@@ -219,22 +203,22 @@ impl ActivityService {
         tokio::spawn(async move {
             let mut wait_interval = tokio::time::interval(activity_state_interval);
             loop {
-                log("tick");
+                log::info!("tick");
                 wait_interval.tick().await;
                 let activities = activity_service_clone
                     .get_activities_since_last_activity_state()
                     .await
                     .unwrap();
-                log("retrieved latest activities");
+                log::info!("retrieved latest activities");
                 let activity_period = activity_state_service_clone
                     .get_next_activity_state_times(activity_state_interval)
                     .await;
-                log("retrieved next activity state times");
+                log::info!("retrieved next activity state times");
                 activity_service_clone
                     .create_activity_state_from_activities(activities, activity_period)
                     .await
                     .expect("Failed to create activity state");
-                log("activity_state_created");
+                log::info!("activity_state_created");
             }
         });
     }
