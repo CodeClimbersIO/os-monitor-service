@@ -139,9 +139,9 @@ dependencies = [
 
 [[package]]
 name = "cc-logger"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05b02350559c002c7eafc493b690ad4b58feb9ab1b507169b877f3bb7f7600ba"
+checksum = "5c672b221fe848f1c3aee01aaffe96c0962c34ec781477f4d2c300956662dc66"
 dependencies = [
  "backtrace",
  "chrono",
@@ -1008,7 +1008,7 @@ dependencies = [
 
 [[package]]
 name = "os-monitor-service"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "cc-logger",
  "colored",

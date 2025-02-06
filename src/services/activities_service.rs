@@ -12,7 +12,6 @@ use crate::{
         models::Activity,
     },
     log,
-    utils::log::log_indent,
 };
 
 use self::activity_state_service::ActivityPeriod;
@@ -84,7 +83,11 @@ impl ActivityService {
     }
 
     async fn handle_keyboard_activity(&self, event: KeyboardEvent) {
-        println!("{}: {:?}", "handle_keyboard_activity".green(), event);
+        log(&format!(
+            "{}: {:?}",
+            "handle_keyboard_activity".green(),
+            event
+        ));
         let activity = Activity::create_keyboard_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             eprintln!("Failed to save keyboard activity: {}", err);
@@ -92,7 +95,7 @@ impl ActivityService {
     }
 
     async fn handle_mouse_activity(&self, event: MouseEvent) {
-        println!("{}: {:?}", "handle_mouse_activity".green(), event);
+        log(&format!("{}: {:?}", "handle_mouse_activity".green(), event));
         let activity = Activity::create_mouse_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             eprintln!("Failed to save mouse activity: {}", err);
@@ -100,7 +103,11 @@ impl ActivityService {
     }
 
     pub async fn handle_window_activity(&self, event: WindowEvent) {
-        println!("{}: {:?}", "handle_window_activity".green(), event);
+        log(&format!(
+            "{}: {:?}",
+            "handle_window_activity".green(),
+            event
+        ));
         let activity = Activity::create_window_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             eprintln!("Failed to save window activity: {}", err);
@@ -127,7 +134,6 @@ impl ActivityService {
 
         let sender = self.event_sender.clone();
         event_callback_service.register_window_callback(Box::new(move |event| {
-            log("register_window_callback");
             let mut app_switch_state = APP_SWITCH_STATE.lock();
 
             let activity = Activity::create_window_activity(&event);
@@ -204,41 +210,27 @@ impl ActivityService {
         activity_period: ActivityPeriod,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         // iterate over the activities to create the start, end, context_switches, and activity_state_type
-        log_indent(
-            &format!(
-                "create_activity_state_from_activities: {}",
-                activities.len()
-            ),
-            0,
-            "green",
-        );
+        log(&format!(
+            "create_activity_state_from_activities: {}",
+            activities.len()
+        ));
 
         if activities.is_empty() {
-            log_indent("create_activity_state_from_activities: empty", 1, "green");
-            self.activity_state_repo
-                .create_idle_activity_state(&activity_period)
-                .await
+            log("  create_activity_state_from_activities: empty");
+            self.create_idle_activity_state(activity_period).await
         } else {
-            log_indent(
-                "create_activity_state_from_activities: not empty",
-                1,
-                "green",
-            );
+            log("  create_activity_state_from_activities: not empty");
             // First lock: Get the context switches
             let context_switches = {
                 let app_switch = APP_SWITCH_STATE.lock();
                 app_switch.app_switches.clone()
             }; // lock is released here
-            log_indent(
-                &format!("context_switches: {:?}", context_switches),
-                1,
-                "green",
-            );
+            log(&format!("  context_switches: {:?}", context_switches));
             let result = self
                 .activity_state_repo
                 .create_active_activity_state(context_switches, &activity_period)
                 .await;
-            log_indent(&format!("created activity state"), 1, "green");
+            log("  created activity state");
 
             let activity_state = self
                 .activity_state_service
@@ -259,8 +251,7 @@ impl ActivityService {
                 let mut app_switch = APP_SWITCH_STATE.lock();
                 app_switch.reset_app_switches();
             } // lock is released here
-            log_indent("reset_app_switches", 1, "green");
-            println!("{}", "activity_state_created".blue());
+            log("  reset_app_switches");
             result
         }
     }

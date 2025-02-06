@@ -10,12 +10,6 @@ pub fn log(message: &str) {
     }
 }
 
-pub fn log_indent(message: &str, indent: usize, color: &str) {
-    if *IS_LOG_ENABLED.lock().unwrap() {
-        cc_logger::log_indent(message, indent, color);
-    }
-}
-
 pub fn enable_log() {
     *IS_LOG_ENABLED.lock().unwrap() = true;
 }

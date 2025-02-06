@@ -1,11 +1,13 @@
-use colored::*;
 use os_monitor::WindowEvent;
 
-use crate::db::{
-    activity_repo::ActivityRepo,
-    app_repo::AppRepo,
-    models::{Activity, ActivityType, App},
-    tag_repo::TagRepo,
+use crate::{
+    db::{
+        activity_repo::ActivityRepo,
+        app_repo::AppRepo,
+        models::{Activity, ActivityType, App},
+        tag_repo::TagRepo,
+    },
+    utils::log::log,
 };
 
 #[cfg(test)]
@@ -46,7 +48,7 @@ impl AppService {
         activities: &Vec<Activity>,
         activity_state_id: i64,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
-        println!("{}", "    Creating Tags From Activities".blue());
+        log("    Creating Tags From Activities");
         // get apps from activities
         let mut names = activities
             .iter()
@@ -71,11 +73,10 @@ impl AppService {
                 .get_last_activity_by_type(ActivityType::Window)
                 .await
                 .expect("Failed to get last activity");
-            println!(
-                "      {}: {:?}",
-                "no window changes, likely were in last activity".blue(),
+            log(&format!(
+                "      no window changes, likely were in last activity: {:?}",
                 latest_activity
-            );
+            ));
             let name = latest_activity.app_name.clone();
             let url = latest_activity.url.clone();
             if let Some(name) = name {
@@ -92,17 +93,17 @@ impl AppService {
             .await
             .expect("Failed to get apps");
 
-        println!("    {}: {:?}", "apps".blue(), apps);
+        log(&format!("    apps: {:?}", apps));
         // get all related tags to those apps
         let mut tags = self
             .tag_repo
             .get_tags_by_app(&apps)
             .await
             .expect("Failed to get tags");
-        println!("    {}: {:?}", "tags".blue(), tags);
+        log(&format!("    tags: {:?}", tags));
         // for each tag, create a tag_activity_state_mapping
         if tags.is_empty() {
-            println!("      {}: {:?}", "no tags found for apps".blue(), apps);
+            log(&format!("      no tags found for apps: {:?}", apps));
             tags = vec![self
                 .tag_repo
                 .get_tag_by_name("consuming")
@@ -152,11 +153,11 @@ impl AppService {
             .get_tag_by_name("consuming")
             .await
             .expect("Failed to get consuming tag");
-        println!("consuming_tag: {:?}", consuming_tag);
-        println!("app: {:?}", app);
+        log(&format!("consuming_tag: {:?}", consuming_tag));
+        log(&format!("app: {:?}", app));
         if let (Some(app_id), Some(tag_id)) = (app.id, consuming_tag.id) {
-            println!("app_id: {:?}", app_id);
-            println!("tag_id: {:?}", tag_id);
+            log(&format!("app_id: {:?}", app_id));
+            log(&format!("tag_id: {:?}", tag_id));
             self.tag_repo.create_app_tag(app_id, tag_id, 1.0).await
         } else {
             Err(sqlx::Error::RowNotFound)
