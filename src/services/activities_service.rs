@@ -273,7 +273,7 @@ mod tests {
             app_name: "Cursor".to_string(),
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: None,
-            bundle_id: "com.ebb.app".to_string(),
+            bundle_id: Some("com.ebb.app".to_string()),
             platform: Platform::Mac,
         };
         activity_service.handle_window_activity(event).await;

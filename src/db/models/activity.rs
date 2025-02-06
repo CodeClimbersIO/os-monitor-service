@@ -75,7 +75,7 @@ impl Activity {
             ActivityType::Window,
             Some(event.app_name.clone()),
             Some(event.window_title.clone()),
-            Some(event.bundle_id.clone()),
+            event.bundle_id.clone(),
             event.url.clone(),
             OffsetDateTime::now_utc(),
         )
@@ -111,7 +111,7 @@ impl Activity {
             app_name: "Cursor".to_string(),
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: None,
-            bundle_id: "com.ebb.app".to_string(),
+            bundle_id: Some("com.ebb.app".to_string()),
             platform: Platform::Mac,
         })
     }
