@@ -17,12 +17,13 @@ impl ActivityRepo {
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
         sqlx::query!(
-            r#"INSERT INTO activity (activity_type, app_name, app_window_title, url, timestamp) 
-          VALUES (?, ?, ?, ?, ?)"#,
+            r#"INSERT INTO activity (activity_type, app_name, app_window_title, url, bundle_id, timestamp) 
+          VALUES (?, ?, ?, ?, ?, ?)"#,
             activity.activity_type as _, // Cast enum to database type
             activity.app_name,
             activity.app_window_title,
             activity.url,
+            activity.bundle_id,
             activity.timestamp,
         )
         .execute(&mut *conn)

@@ -233,7 +233,7 @@ pub async fn start_monitoring(db_path: String) -> ActivityService {
 #[cfg(test)]
 mod tests {
 
-    use os_monitor::WindowEvent;
+    use os_monitor::{Platform, WindowEvent};
     use time::OffsetDateTime;
 
     use super::*;
@@ -273,6 +273,8 @@ mod tests {
             app_name: "Cursor".to_string(),
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: None,
+            bundle_id: "com.ebb.app".to_string(),
+            platform: Platform::Mac,
         };
         activity_service.handle_window_activity(event).await;
 

@@ -9,6 +9,7 @@ use tokio::{self, time::sleep};
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
     dotenv().ok();
 
     let monitor = Arc::new(Monitor::new());

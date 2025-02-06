@@ -37,6 +37,11 @@
         "name": "url",
         "ordinal": 6,
         "type_info": "Text"
+      },
+      {
+        "name": "bundle_id",
+        "ordinal": 7,
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -49,6 +54,7 @@
       true,
       false,
       false,
+      true,
       true
     ]
   },
