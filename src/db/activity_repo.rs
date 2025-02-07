@@ -17,12 +17,13 @@ impl ActivityRepo {
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
         sqlx::query!(
-            r#"INSERT INTO activity (activity_type, app_name, app_window_title, url, timestamp, platform) 
-            VALUES (?, ?, ?, ?, ?, ?)"#,
+            r#"INSERT INTO activity (activity_type, app_name, app_window_title, url, bundle_id, timestamp, platform) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)"#,
             activity.activity_type as _,
             activity.app_name,
             activity.app_window_title,
             activity.url,
+            activity.bundle_id,
             activity.timestamp,
             activity.platform as _,
         )
@@ -35,7 +36,7 @@ impl ActivityRepo {
         sqlx::query_as!(
             Activity,
             r#"SELECT id, created_at, timestamp, activity_type as "activity_type: _", 
-            app_name, app_window_title, url, platform as "platform: _" 
+            app_name, app_window_title, url, bundle_id, platform as "platform: _" 
             FROM activity WHERE id = ?"#,
             id
         )

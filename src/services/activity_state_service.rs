@@ -2,10 +2,7 @@ use std::time::Duration;
 
 use time::OffsetDateTime;
 
-use crate::{
-    db::{activity_state_repo::ActivityStateRepo, models::ActivityState},
-    utils::log,
-};
+use crate::db::{activity_state_repo::ActivityStateRepo, models::ActivityState};
 
 #[derive(Clone, Debug)]
 pub struct ActivityPeriod {
@@ -37,10 +34,10 @@ impl ActivityStateService {
                     + Duration::from_secs(5)
                     < OffsetDateTime::now_utc()
                 {
-                    log::log("start time is now");
+                    log::info!("start time is now");
                     OffsetDateTime::now_utc()
                 } else {
-                    log::log("start time is last state end time");
+                    log::info!("start time is last state end time");
                     last_state.end_time.unwrap_or(OffsetDateTime::now_utc())
                 };
                 (start_time, OffsetDateTime::now_utc() + interval)

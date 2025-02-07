@@ -1,13 +1,10 @@
 use os_monitor::WindowEvent;
 
-use crate::{
-    db::{
-        activity_repo::ActivityRepo,
-        app_repo::AppRepo,
-        models::{Activity, ActivityType, App},
-        tag_repo::TagRepo,
-    },
-    utils::log::log,
+use crate::db::{
+    activity_repo::ActivityRepo,
+    app_repo::AppRepo,
+    models::{Activity, ActivityType, App},
+    tag_repo::TagRepo,
 };
 
 #[cfg(test)]
@@ -48,7 +45,7 @@ impl AppService {
         activities: &Vec<Activity>,
         activity_state_id: i64,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
-        log("    Creating Tags From Activities");
+        log::info!("    Creating Tags From Activities");
         // get apps from activities
         let mut names = activities
             .iter()
@@ -73,10 +70,10 @@ impl AppService {
                 .get_last_activity_by_type(ActivityType::Window)
                 .await
                 .expect("Failed to get last activity");
-            log(&format!(
+            log::info!(
                 "      no window changes, likely were in last activity: {:?}",
                 latest_activity
-            ));
+            );
             let name = latest_activity.app_name.clone();
             let url = latest_activity.url.clone();
             if let Some(name) = name {
@@ -93,17 +90,17 @@ impl AppService {
             .await
             .expect("Failed to get apps");
 
-        log(&format!("    apps: {:?}", apps));
+        log::info!("    apps: {:?}", apps);
         // get all related tags to those apps
         let mut tags = self
             .tag_repo
             .get_tags_by_app(&apps)
             .await
             .expect("Failed to get tags");
-        log(&format!("    tags: {:?}", tags));
+        log::info!("    tags: {:?}", tags);
         // for each tag, create a tag_activity_state_mapping
         if tags.is_empty() {
-            log(&format!("      no tags found for apps: {:?}", apps));
+            log::info!("      no tags found for apps: {:?}", apps);
             tags = vec![self
                 .tag_repo
                 .get_tag_by_name("consuming")
@@ -153,11 +150,11 @@ impl AppService {
             .get_tag_by_name("consuming")
             .await
             .expect("Failed to get consuming tag");
-        log(&format!("consuming_tag: {:?}", consuming_tag));
-        log(&format!("app: {:?}", app));
+        log::info!("consuming_tag: {:?}", consuming_tag);
+        log::info!("app: {:?}", app);
         if let (Some(app_id), Some(tag_id)) = (app.id, consuming_tag.id) {
-            log(&format!("app_id: {:?}", app_id));
-            log(&format!("tag_id: {:?}", tag_id));
+            log::info!("app_id: {:?}", app_id);
+            log::info!("tag_id: {:?}", tag_id);
             self.tag_repo.create_app_tag(app_id, tag_id, 1.0).await
         } else {
             Err(sqlx::Error::RowNotFound)
@@ -225,6 +222,7 @@ mod tests {
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: None,
             platform: OsPlatform::Mac,
+            bundle_id: None,
         };
         activity_service.handle_window_activity(event).await;
         let event = WindowEvent {
@@ -232,6 +230,7 @@ mod tests {
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: Some("https://www.google.com/".to_string()),
             platform: OsPlatform::Mac,
+            bundle_id: None,
         };
         activity_service.handle_window_activity(event).await;
         let event = WindowEvent {
@@ -239,6 +238,7 @@ mod tests {
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: Some("https://www.x.com/".to_string()),
             platform: OsPlatform::Mac,
+            bundle_id: None,
         };
         activity_service.handle_window_activity(event).await;
         let event = WindowEvent {
@@ -246,6 +246,7 @@ mod tests {
             window_title: "main".to_string(),
             url: None,
             platform: OsPlatform::Mac,
+            bundle_id: None,
         };
         activity_service.handle_window_activity(event).await;
         let event = WindowEvent {
@@ -253,6 +254,7 @@ mod tests {
             window_title: "main".to_string(),
             url: Some("https://www.instagram.com/your_page".to_string()),
             platform: OsPlatform::Mac,
+            bundle_id: None,
         };
         activity_service.handle_window_activity(event).await;
 

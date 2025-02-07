@@ -60,6 +60,7 @@ mod tests {
             Some("app1".to_string()),
             Some("window1".to_string()),
             None,
+            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
         ));
@@ -68,6 +69,7 @@ mod tests {
             ActivityType::Window,
             Some("app2".to_string()),
             Some("window2".to_string()),
+            None,
             None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
@@ -78,6 +80,7 @@ mod tests {
             Some("app3".to_string()),
             Some("window3".to_string()),
             None,
+            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
         ));
@@ -87,6 +90,7 @@ mod tests {
             Some("app3".to_string()),
             Some("window4".to_string()),
             None,
+            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
         ));
@@ -95,6 +99,7 @@ mod tests {
             ActivityType::Window,
             Some("app3".to_string()),
             Some("window5".to_string()),
+            None,
             None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
@@ -111,6 +116,7 @@ mod tests {
                 Some(format!("app{}", i)),
                 Some(format!("window{}", i)),
                 None,
+                None,
                 OffsetDateTime::now_utc(),
                 Platform::Mac,
             ));
@@ -126,6 +132,7 @@ mod tests {
             Some("app1".to_string()),
             Some("window1".to_string()),
             None,
+            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
         ));
@@ -134,6 +141,7 @@ mod tests {
             ActivityType::Window,
             Some("app2".to_string()),
             Some("window2".to_string()),
+            None,
             None,
             OffsetDateTime::now_utc(),
             Platform::Mac,

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT * FROM activity WHERE timestamp > (SELECT start_time FROM activity_state WHERE id = (SELECT MAX(id) FROM activity_state))\n            ORDER BY timestamp ASC\n            ",
+  "query": "SELECT * FROM activity WHERE activity_type = ? ORDER BY timestamp DESC LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -50,7 +50,7 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
@@ -64,5 +64,5 @@
       false
     ]
   },
-  "hash": "547387f91c63cd9c16245ff2a4cc0bf508a930cc6d1bbea1172d905aa4fe24de"
+  "hash": "b1e69f88d1584f0124fe5f38398683c2e2e9afc19bfaae8c3ad285268ec4d5e0"
 }
