@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT * FROM app_tag WHERE app_id = ?",
+  "query": "SELECT * FROM tag",
   "describe": {
     "columns": [
       {
@@ -9,42 +9,48 @@
         "type_info": "Text"
       },
       {
-        "name": "app_id",
+        "name": "name",
         "ordinal": 1,
         "type_info": "Text"
       },
       {
-        "name": "tag_id",
+        "name": "parent_tag_id",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "weight",
+        "name": "tag_type",
         "ordinal": 3,
-        "type_info": "Float"
+        "type_info": "Text"
       },
       {
-        "name": "is_default",
+        "name": "is_blocked",
         "ordinal": 4,
         "type_info": "Bool"
       },
       {
-        "name": "created_at",
+        "name": "is_default",
         "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 6,
         "type_info": "Datetime"
       },
       {
         "name": "updated_at",
-        "ordinal": 6,
+        "ordinal": 7,
         "type_info": "Datetime"
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 0
     },
     "nullable": [
       false,
       false,
+      true,
       false,
       false,
       false,
@@ -52,5 +58,5 @@
       false
     ]
   },
-  "hash": "40c8adb02912118e570fd084d414947dede7fb2a7293a2dc7d08543cf7d08824"
+  "hash": "4f19961fc500009645ec1b5ba2bcb141c52eed8d765bbd934a74eea80dd7da4c"
 }

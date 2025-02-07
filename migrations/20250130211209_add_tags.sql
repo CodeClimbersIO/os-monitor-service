@@ -48,5 +48,3 @@ CREATE TABLE IF NOT EXISTS app_tag (
 );
 
 ALTER TABLE activity ADD COLUMN platform TEXT NOT NULL CHECK (platform IN ('MAC', 'WINDOWS', 'LINUX', 'IOS', 'ANDROID', 'UNKNOWN')) DEFAULT 'MAC';
-
-INSERT INTO tag (id, name, tag_type, is_default) VALUES ('38c0b705-842c-4121-bff8-4fac033f1a4b', 'idle', 'default', TRUE);
