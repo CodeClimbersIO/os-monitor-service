@@ -4,9 +4,9 @@ use time::OffsetDateTime;
 
 #[derive(Clone, Debug)]
 pub struct AppTag {
-    pub id: Option<i64>,
-    pub app_id: i64,
-    pub tag_id: i64,
+    pub id: Option<String>,
+    pub app_id: String,
+    pub tag_id: String,
     pub weight: f32,
     pub created_at: Option<OffsetDateTime>,
     pub updated_at: Option<OffsetDateTime>,

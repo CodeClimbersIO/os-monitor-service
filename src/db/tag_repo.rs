@@ -22,9 +22,12 @@ impl TagRepo {
             .await
     }
 
-    pub async fn get_tags_by_app(&self, apps: &Vec<App>) -> Result<Vec<Tag>, sqlx::Error> {
+    pub async fn get_default_tags_by_app(&self, apps: &Vec<App>) -> Result<Vec<Tag>, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
-        let app_ids = apps.iter().filter_map(|app| app.id).collect::<Vec<i64>>();
+        let app_ids = apps
+            .iter()
+            .filter_map(|app| app.id.clone())
+            .collect::<Vec<String>>();
         let placeholders = std::iter::repeat("?")
             .take(app_ids.len())
             .collect::<Vec<_>>()
@@ -32,10 +35,10 @@ impl TagRepo {
 
         let query = format!(
             r#"
-                SELECT *
+                SELECT tag.*
                 FROM tag 
                 JOIN app_tag ON tag.id = app_tag.tag_id 
-                WHERE app_tag.app_id IN ({})"#,
+                WHERE app_tag.app_id IN ({}) AND tag.tag_type = 'default'"#,
             placeholders
         );
 
@@ -68,8 +71,8 @@ impl TagRepo {
         let mut conn = self.pool.acquire().await?;
         let unique_tags = tags
             .iter()
-            .filter_map(|tag| tag.id)
-            .collect::<HashSet<i64>>();
+            .filter_map(|tag| tag.id.clone())
+            .collect::<HashSet<String>>();
 
         let placeholders = std::iter::repeat("(?, ?)")
             .take(unique_tags.len())
@@ -93,13 +96,16 @@ impl TagRepo {
 
     pub async fn create_app_tag(
         &self,
-        app_id: i64,
-        tag_id: i64,
+        app_id: String,
+        tag_id: String,
         weight: f32,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
+        let id = uuid::Uuid::new_v4().to_string();
+
         sqlx::query!(
-            "INSERT INTO app_tag (app_id, tag_id, weight) VALUES (?, ?, ?)",
+            "INSERT INTO app_tag (id, app_id, tag_id, weight) VALUES (?, ?, ?, ?)",
+            id,
             app_id,
             tag_id,
             weight

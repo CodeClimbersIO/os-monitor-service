@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO app_tag (id, app_id, tag_id, weight) VALUES (?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "80975deda9f89e733c73fa1f4954954ccf3669d3f273d42e32baccd7423a942c"
+}

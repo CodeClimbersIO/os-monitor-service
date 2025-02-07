@@ -47,9 +47,9 @@ impl AppService {
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         log::info!("    Creating Tags From Activities");
         // get apps from activities
-        let mut names = activities
+        let mut app_ids = activities
             .iter()
-            .filter_map(|a| a.app_name.clone())
+            .filter_map(|a| a.bundle_id.clone())
             .collect::<Vec<String>>();
         let urls = activities
             .iter()
@@ -61,10 +61,9 @@ impl AppService {
             .map(|url| App::get_domain_from_url(url))
             .collect::<Vec<String>>();
 
-        names.extend(apps);
-
+        app_ids.extend(apps);
         // if there are no names, use the latest window type activity
-        if names.is_empty() {
+        if app_ids.is_empty() {
             let latest_activity = self
                 .activity_repo
                 .get_last_activity_by_type(ActivityType::Window)
@@ -74,31 +73,32 @@ impl AppService {
                 "      no window changes, likely were in last activity: {:?}",
                 latest_activity
             );
-            let name = latest_activity.app_name.clone();
+            let app_id = latest_activity.bundle_id.clone();
             let url = latest_activity.url.clone();
-            if let Some(name) = name {
-                names.push(name);
+            if let Some(app_id) = app_id {
+                app_ids.push(app_id);
             }
             if let Some(url) = url {
-                names.push(url);
+                app_ids.push(url);
             }
         }
 
         let apps = self
             .app_repo
-            .get_apps_by_name(&names)
+            .get_apps_by_app_ids(&app_ids)
             .await
             .expect("Failed to get apps");
 
         log::info!("    apps: {:?}", apps);
+
         // get all related tags to those apps
         let mut tags = self
             .tag_repo
-            .get_tags_by_app(&apps)
+            .get_default_tags_by_app(&apps)
             .await
             .expect("Failed to get tags");
         log::info!("    tags: {:?}", tags);
-        // for each tag, create a tag_activity_state_mapping
+
         if tags.is_empty() {
             log::info!("      no tags found for apps: {:?}", apps);
             tags = vec![self
@@ -107,6 +107,8 @@ impl AppService {
                 .await
                 .expect("Failed to get consuming tag")];
         }
+
+        // for each tag, create a tag_activity_state_mapping
         return self
             .tag_repo
             .create_activity_state_tags(activity_state_id, &tags)
@@ -117,11 +119,7 @@ impl AppService {
         let app = App::new(&event);
         match self.save_app(&app).await {
             Ok(_) => {
-                let last_created_app = self
-                    .get_last_created_app()
-                    .await
-                    .expect("Failed to get last created app");
-                if let Err(err) = self.create_default_app_tag(&last_created_app).await {
+                if let Err(err) = self.create_default_app_tag(&app).await {
                     eprintln!("Failed to create default tag for app: {}", err);
                 }
             }
@@ -140,7 +138,6 @@ impl AppService {
         }
     }
 
-    // Add this new helper method
     async fn create_default_app_tag(
         &self,
         app: &App,
@@ -152,7 +149,7 @@ impl AppService {
             .expect("Failed to get consuming tag");
         log::info!("consuming_tag: {:?}", consuming_tag);
         log::info!("app: {:?}", app);
-        if let (Some(app_id), Some(tag_id)) = (app.id, consuming_tag.id) {
+        if let (Some(app_id), Some(tag_id)) = (app.id.clone(), consuming_tag.id.clone()) {
             log::info!("app_id: {:?}", app_id);
             log::info!("tag_id: {:?}", tag_id);
             self.tag_repo.create_app_tag(app_id, tag_id, 1.0).await
@@ -166,10 +163,6 @@ impl AppService {
         app: &App,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         self.app_repo.save_app(app).await
-    }
-
-    pub async fn get_last_created_app(&self) -> Result<App, sqlx::Error> {
-        self.app_repo.get_last_created_app().await
     }
 
     #[cfg(test)]
@@ -199,7 +192,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_create_tags_from_activities_only_with_app_names() {
+    async fn test_create_tags_from_activities_only_with_app_ids() {
         let pool = db_manager::create_test_db().await;
         let app_service = AppService::new(pool.clone());
 
@@ -222,7 +215,7 @@ mod tests {
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: None,
             platform: OsPlatform::Mac,
-            bundle_id: None,
+            bundle_id: Some("cursor.com".to_string()),
         };
         activity_service.handle_window_activity(event).await;
         let event = WindowEvent {
@@ -246,7 +239,7 @@ mod tests {
             window_title: "main".to_string(),
             url: None,
             platform: OsPlatform::Mac,
-            bundle_id: None,
+            bundle_id: Some("com.ebb.app".to_string()),
         };
         activity_service.handle_window_activity(event).await;
         let event = WindowEvent {

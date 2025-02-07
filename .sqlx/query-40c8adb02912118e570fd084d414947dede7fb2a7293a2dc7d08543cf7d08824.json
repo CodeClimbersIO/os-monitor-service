@@ -1,44 +1,50 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, name, platform, is_browser, created_at, updated_at\n            FROM app WHERE name = ? OR name = ?",
+  "query": "SELECT * FROM app_tag WHERE app_id = ?",
   "describe": {
     "columns": [
       {
         "name": "id",
         "ordinal": 0,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "name",
+        "name": "app_id",
         "ordinal": 1,
         "type_info": "Text"
       },
       {
-        "name": "platform",
+        "name": "tag_id",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "is_browser",
+        "name": "weight",
         "ordinal": 3,
+        "type_info": "Float"
+      },
+      {
+        "name": "is_default",
+        "ordinal": 4,
         "type_info": "Bool"
       },
       {
         "name": "created_at",
-        "ordinal": 4,
+        "ordinal": 5,
         "type_info": "Datetime"
       },
       {
         "name": "updated_at",
-        "ordinal": 5,
+        "ordinal": 6,
         "type_info": "Datetime"
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
-      true,
+      false,
+      false,
       false,
       false,
       false,
@@ -46,5 +52,5 @@
       false
     ]
   },
-  "hash": "9408d21c416c5755cbf0437c8a5aa6357451a123272b65d3d95c13e257a24d6e"
+  "hash": "40c8adb02912118e570fd084d414947dede7fb2a7293a2dc7d08543cf7d08824"
 }

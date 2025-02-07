@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT * FROM app ORDER BY created_at DESC LIMIT 1",
+  "query": "SELECT * FROM app WHERE app_id = ?",
   "describe": {
     "columns": [
       {
@@ -50,7 +50,7 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
@@ -64,5 +64,5 @@
       false
     ]
   },
-  "hash": "c8f0706d0d4b7e7dd3c399d90f1f769b1da2b2e8f23ec0b252f8ae51641e5ee8"
+  "hash": "0b122271d18986077cf80919bf4bcba7ac28c9267c5f2759963e62d5e2ecba33"
 }

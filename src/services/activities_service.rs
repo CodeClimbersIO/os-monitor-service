@@ -136,6 +136,7 @@ impl ActivityService {
         &self,
         activity: &Activity,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
+        println!("activity: {:?}", activity);
         self.activities_repo.save_activity(activity).await
     }
 

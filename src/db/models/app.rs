@@ -2,15 +2,19 @@ use os_monitor::WindowEvent;
 use sqlx::Row;
 use time::OffsetDateTime;
 use url;
+use uuid;
 
 use crate::db::types::Platform;
 
 #[derive(Clone, Debug)]
 pub struct App {
-    pub id: Option<i64>,
-    pub name: String,
+    pub id: Option<String>,
+    pub name: Option<String>,
+    pub app_id: String,
     pub platform: Platform,
     pub is_browser: bool,
+    pub is_default: bool,
+    pub is_blocked: bool,
     pub created_at: Option<OffsetDateTime>,
     pub updated_at: Option<OffsetDateTime>,
 }
@@ -20,8 +24,11 @@ impl<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> for App {
         Ok(App {
             id: row.try_get("id")?,
             name: row.try_get("name")?,
+            app_id: row.try_get("app_id")?,
             platform: row.try_get("platform")?,
             is_browser: row.try_get("is_browser")?,
+            is_default: row.try_get("is_default")?,
+            is_blocked: row.try_get("is_blocked")?,
             created_at: row.try_get("created_at")?,
             updated_at: row.try_get("updated_at")?,
         })
@@ -30,16 +37,25 @@ impl<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> for App {
 
 impl App {
     pub fn new(event: &WindowEvent) -> App {
+        let url = match &event.url {
+            Some(url) => Some(Self::get_domain_from_url(url)),
+            None => Some(event.app_name.clone()),
+        };
+        let app_id = if let Some(bundle_id) = &event.bundle_id {
+            bundle_id.clone()
+        } else {
+            url.unwrap_or("".to_string())
+        };
         App {
-            id: None,
+            id: Some(uuid::Uuid::new_v4().to_string()),
             created_at: None,
             updated_at: None,
-            name: match &event.url {
-                Some(url) => Self::get_domain_from_url(url),
-                None => event.app_name.clone(),
-            },
+            name: Some(event.app_name.clone()),
+            app_id: app_id,
             platform: event.platform.clone().into(),
             is_browser: event.url.is_some(),
+            is_default: false,
+            is_blocked: false,
         }
     }
 
@@ -67,12 +83,15 @@ impl App {
     #[cfg(test)]
     pub fn __create_test_app() -> App {
         App {
-            id: None,
+            id: Some(uuid::Uuid::new_v4().to_string()),
             created_at: None,
             updated_at: None,
-            name: "Test App".to_string(),
+            name: Some("Test App".to_string()),
+            app_id: "".to_string(),
             platform: Platform::Mac,
             is_browser: false,
+            is_default: false,
+            is_blocked: false,
         }
     }
 
@@ -81,12 +100,15 @@ impl App {
         names
             .iter()
             .map(|name| App {
-                id: None,
+                id: Some(uuid::Uuid::new_v4().to_string()),
                 created_at: None,
                 updated_at: None,
-                name: name.to_string(),
+                name: Some(name.to_string()),
+                app_id: "".to_string(),
                 platform: Platform::Mac,
                 is_browser: false,
+                is_default: false,
+                is_blocked: false,
             })
             .collect()
     }

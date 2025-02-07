@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT * FROM app ORDER BY created_at DESC LIMIT 1",
+  "query": "SELECT id, name, app_id, platform, is_browser, is_default, is_blocked, created_at, updated_at\n            FROM app WHERE name = ? OR name = ?",
   "describe": {
     "columns": [
       {
@@ -50,7 +50,7 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 2
     },
     "nullable": [
       false,
@@ -64,5 +64,5 @@
       false
     ]
   },
-  "hash": "c8f0706d0d4b7e7dd3c399d90f1f769b1da2b2e8f23ec0b252f8ae51641e5ee8"
+  "hash": "4e0769af8691e39c84f0c3068688a8bd210e4c04b7ecaa0a36d9a9a6611630bd"
 }

@@ -44,11 +44,22 @@ impl ActivityRepo {
         .await
     }
 
-    pub async fn get_last_activity_by_type(&self, activity_type: ActivityType) -> Result<Activity, sqlx::Error> {
+    pub async fn get_last_activity_by_type(
+        &self,
+        activity_type: ActivityType,
+    ) -> Result<Activity, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
-        sqlx::query_as!(Activity, "SELECT * FROM activity WHERE activity_type = ? ORDER BY timestamp DESC LIMIT 1", activity_type as _)
-            .fetch_one(&mut *conn)
-            .await
+        sqlx::query_as!(
+            Activity,
+            r#"SELECT id, created_at, timestamp, 
+                   activity_type as "activity_type: _",
+                   app_name, app_window_title, url, 
+                   platform as "platform: _",
+                   bundle_id FROM activity WHERE activity_type = ? ORDER BY timestamp DESC LIMIT 1"#,
+            activity_type as _
+        )
+        .fetch_one(&mut *conn)
+        .await
     }
 
     // get the activities since the last activity state. If none, return an empty vector.
@@ -56,13 +67,26 @@ impl ActivityRepo {
         &self,
     ) -> Result<Vec<Activity>, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
-        sqlx::query_as!(Activity, 
+
+        sqlx::query_as!(
+            Activity,
             r#"
-            SELECT * FROM activity WHERE timestamp > (SELECT start_time FROM activity_state WHERE id = (SELECT MAX(id) FROM activity_state))
+            SELECT id, created_at, timestamp, 
+                   activity_type as "activity_type: _",
+                   app_name, app_window_title, url, 
+                   platform as "platform: _",
+                   bundle_id
+            FROM activity 
+            WHERE timestamp > (
+                SELECT start_time 
+                FROM activity_state 
+                WHERE id = (SELECT MAX(id) FROM activity_state)
+            )
             ORDER BY timestamp ASC
-            "#)
-            .fetch_all(&mut *conn)
-            .await
+            "#
+        )
+        .fetch_all(&mut *conn)
+        .await
     }
 }
 
@@ -77,5 +101,4 @@ mod tests {
         let activity = Activity::__create_test_window(None);
         activity_repo.save_activity(&activity).await.unwrap();
     }
-
 }
