@@ -17,13 +17,11 @@ impl ActivityRepo {
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
         sqlx::query!(
-            r#"INSERT INTO activity (activity_type, app_name, app_window_title, url, bundle_id, timestamp, platform) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)"#,
+            r#"INSERT INTO activity (activity_type, app_id, app_window_title, timestamp, platform) 
+            VALUES (?, ?, ?, ?, ?)"#,
             activity.activity_type as _,
-            activity.app_name,
+            activity.app_id,
             activity.app_window_title,
-            activity.url,
-            activity.bundle_id,
             activity.timestamp,
             activity.platform as _,
         )
@@ -36,7 +34,7 @@ impl ActivityRepo {
         sqlx::query_as!(
             Activity,
             r#"SELECT id, created_at, timestamp, activity_type as "activity_type: _", 
-            app_name, app_window_title, url, bundle_id, platform as "platform: _" 
+            app_id, app_window_title, platform as "platform: _" 
             FROM activity WHERE id = ?"#,
             id
         )
@@ -53,9 +51,8 @@ impl ActivityRepo {
             Activity,
             r#"SELECT id, created_at, timestamp, 
                    activity_type as "activity_type: _",
-                   app_name, app_window_title, url, 
-                   platform as "platform: _",
-                   bundle_id FROM activity WHERE activity_type = ? ORDER BY timestamp DESC LIMIT 1"#,
+                   app_id, app_window_title, platform as "platform: _" 
+                   FROM activity WHERE activity_type = ? ORDER BY timestamp DESC LIMIT 1"#,
             activity_type as _
         )
         .fetch_one(&mut *conn)
@@ -73,9 +70,8 @@ impl ActivityRepo {
             r#"
             SELECT id, created_at, timestamp, 
                    activity_type as "activity_type: _",
-                   app_name, app_window_title, url, 
-                   platform as "platform: _",
-                   bundle_id
+                   app_id, app_window_title, 
+                   platform as "platform: _" 
             FROM activity 
             WHERE timestamp > (
                 SELECT start_time 
@@ -98,7 +94,7 @@ mod tests {
     async fn test_activity_repo() {
         let pool = db_manager::create_test_db().await;
         let activity_repo = ActivityRepo::new(pool);
-        let activity = Activity::__create_test_window(None);
+        let activity = Activity::__create_test_window(None, None);
         activity_repo.save_activity(&activity).await.unwrap();
     }
 }

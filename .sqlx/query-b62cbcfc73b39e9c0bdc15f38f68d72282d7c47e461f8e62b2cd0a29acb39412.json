@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, created_at, timestamp, activity_type as \"activity_type: _\", \n            app_name, app_window_title, url, bundle_id, platform as \"platform: _\" \n            FROM activity WHERE id = ?",
+  "query": "SELECT id, created_at, timestamp, \n                   activity_type as \"activity_type: _\",\n                   app_id, app_window_title, platform as \"platform: _\" \n                   FROM activity WHERE activity_type = ? ORDER BY timestamp DESC LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -24,7 +24,7 @@
         "type_info": "Text"
       },
       {
-        "name": "app_name",
+        "name": "app_id",
         "ordinal": 4,
         "type_info": "Text"
       },
@@ -34,18 +34,8 @@
         "type_info": "Text"
       },
       {
-        "name": "url",
-        "ordinal": 6,
-        "type_info": "Text"
-      },
-      {
-        "name": "bundle_id",
-        "ordinal": 7,
-        "type_info": "Text"
-      },
-      {
         "name": "platform: _",
-        "ordinal": 8,
+        "ordinal": 6,
         "type_info": "Text"
       }
     ],
@@ -53,16 +43,14 @@
       "Right": 1
     },
     "nullable": [
-      false,
-      false,
-      false,
-      false,
       true,
-      true,
+      false,
+      false,
+      false,
       true,
       true,
       false
     ]
   },
-  "hash": "88b1e39ed797fe9d26a19a54390a627ffcf943fc9ca543c87120981a31fb07da"
+  "hash": "b62cbcfc73b39e9c0bdc15f38f68d72282d7c47e461f8e62b2cd0a29acb39412"
 }

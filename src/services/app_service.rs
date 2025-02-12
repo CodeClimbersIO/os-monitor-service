@@ -49,19 +49,8 @@ impl AppService {
         // get apps from activities
         let mut app_ids = activities
             .iter()
-            .filter_map(|a| a.bundle_id.clone())
+            .filter_map(|a| a.app_id.clone())
             .collect::<Vec<String>>();
-        let urls = activities
-            .iter()
-            .filter_map(|a| a.url.clone())
-            .collect::<Vec<String>>();
-
-        let apps = urls
-            .iter()
-            .map(|url| App::get_domain_from_url(url))
-            .collect::<Vec<String>>();
-
-        app_ids.extend(apps);
         // if there are no names, use the latest window type activity
         if app_ids.is_empty() {
             let latest_activity = self
@@ -73,19 +62,15 @@ impl AppService {
                 "      no window changes, likely were in last activity: {:?}",
                 latest_activity
             );
-            let app_id = latest_activity.bundle_id.clone();
-            let url = latest_activity.url.clone();
+            let app_id = latest_activity.app_id.clone();
             if let Some(app_id) = app_id {
                 app_ids.push(app_id);
-            }
-            if let Some(url) = url {
-                app_ids.push(url);
             }
         }
 
         let apps = self
             .app_repo
-            .get_apps_by_app_ids(&app_ids)
+            .get_apps_by_ids(&app_ids)
             .await
             .expect("Failed to get apps");
 
@@ -98,7 +83,6 @@ impl AppService {
             .await
             .expect("Failed to get tags");
         log::info!("    tags: {:?}", tags);
-
         if tags.is_empty() {
             log::info!("      no tags found for apps: {:?}", apps);
             tags = vec![self
@@ -115,32 +99,35 @@ impl AppService {
             .await;
     }
 
-    pub async fn handle_window_event(&self, event: &WindowEvent) {
-        let app = App::new(&event);
-        match self.save_app(&app).await {
-            Ok(_) => {
-                if let Err(err) = self.create_default_app_tag(&app).await {
-                    eprintln!("Failed to create default tag for app: {}", err);
-                }
-            }
-            Err(err) => {
-                match err {
-                    sqlx::Error::Database(db_err) if db_err.code().as_deref() == Some("2067") => {
-                        // Silently ignore duplicate entries
-                        return;
+    /**
+     * When we get a new window event, we have some behavior to handle apps.
+     * Apps are identified by their external id (either the url or the bundle id from the event)
+     * If the app exists in the database (by external id), we return the app.id
+     * If the app does not exist, we create a new app and a default tag for it and return the new app.id
+     */
+    pub async fn handle_window_event(&self, event: &WindowEvent) -> Result<String, sqlx::Error> {
+        let raw_app = App::new(&event);
+
+        let app = self.get_app_by_external_id(&raw_app.app_external_id).await;
+        if let Ok(app) = app {
+            return Ok(app.id.unwrap());
+        } else {
+            log::info!("app not found, creating new app");
+            match self.save_app(&raw_app).await {
+                Ok(_) => {
+                    if let Err(err) = self.create_default_app_tag(raw_app.id.clone()).await {
+                        log::error!("Failed to create default tag for app: {}", err);
                     }
-                    other_err => {
-                        // Log or handle other database errors
-                        eprintln!("Failed to save app: {}", other_err);
-                    }
+                    Ok(raw_app.id.clone().unwrap())
                 }
+                Err(err) => Err(err),
             }
         }
     }
 
     async fn create_default_app_tag(
         &self,
-        app: &App,
+        app_id: Option<String>,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         let consuming_tag = self
             .tag_repo
@@ -148,8 +135,7 @@ impl AppService {
             .await
             .expect("Failed to get consuming tag");
         log::info!("consuming_tag: {:?}", consuming_tag);
-        log::info!("app: {:?}", app);
-        if let (Some(app_id), Some(tag_id)) = (app.id.clone(), consuming_tag.id.clone()) {
+        if let (Some(app_id), Some(tag_id)) = (app_id, consuming_tag.id.clone()) {
             log::info!("app_id: {:?}", app_id);
             log::info!("tag_id: {:?}", tag_id);
             self.tag_repo.create_app_tag(app_id, tag_id, 1.0).await
@@ -158,11 +144,20 @@ impl AppService {
         }
     }
 
+    pub async fn get_app_by_external_id(&self, external_app_id: &str) -> Result<App, sqlx::Error> {
+        self.app_repo.get_app_by_external_id(external_app_id).await
+    }
+
     pub async fn save_app(
         &self,
         app: &App,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         self.app_repo.save_app(app).await
+    }
+
+    #[cfg(test)]
+    pub async fn get_app_tag_by_app_id(&self, app_id: &str) -> Result<Tag, sqlx::Error> {
+        self.tag_repo.get_app_tag_by_app_id(app_id).await
     }
 
     #[cfg(test)]
@@ -215,21 +210,21 @@ mod tests {
             window_title: "main.rs - app-codeclimbers".to_string(),
             url: None,
             platform: OsPlatform::Mac,
-            bundle_id: Some("cursor.com".to_string()),
+            bundle_id: Some("com.todesktop.230313mzl4w4u92".to_string()),
         };
         activity_service.handle_window_activity(event).await;
         let event = WindowEvent {
             app_name: "Google Chrome".to_string(),
-            window_title: "main.rs - app-codeclimbers".to_string(),
-            url: Some("https://www.google.com/".to_string()),
+            window_title: "Google".to_string(),
+            url: Some("google.com".to_string()),
             platform: OsPlatform::Mac,
             bundle_id: None,
         };
         activity_service.handle_window_activity(event).await;
         let event = WindowEvent {
             app_name: "Google Chrome".to_string(),
-            window_title: "main.rs - app-codeclimbers".to_string(),
-            url: Some("https://www.x.com/".to_string()),
+            window_title: "X - Twitter".to_string(),
+            url: Some("x.com".to_string()),
             platform: OsPlatform::Mac,
             bundle_id: None,
         };
@@ -244,8 +239,8 @@ mod tests {
         activity_service.handle_window_activity(event).await;
         let event = WindowEvent {
             app_name: "Google Chrome".to_string(),
-            window_title: "main".to_string(),
-            url: Some("https://www.instagram.com/your_page".to_string()),
+            window_title: "Instagram".to_string(),
+            url: Some("instagram.com".to_string()),
             platform: OsPlatform::Mac,
             bundle_id: None,
         };
@@ -268,7 +263,7 @@ mod tests {
             .get_tags_for_activity_state(activity_state.id.unwrap())
             .await
             .expect("Failed to get tags");
-        println!("tags: {:?}", tags);
-        assert_eq!(tags.len(), 2);
+
+        assert_eq!(tags.len(), 3);
     }
 }

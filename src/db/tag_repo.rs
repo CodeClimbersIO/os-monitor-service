@@ -115,6 +115,18 @@ impl TagRepo {
     }
 
     #[cfg(test)]
+    pub async fn get_app_tag_by_app_id(&self, app_id: &str) -> Result<Tag, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+        sqlx::query_as!(
+            Tag,
+            "SELECT tag.* FROM tag JOIN app_tag ON tag.id = app_tag.tag_id WHERE app_tag.app_id = ?",
+            app_id
+        )
+        .fetch_one(&mut *conn)
+        .await
+    }
+
+    #[cfg(test)]
     pub async fn get_tags_for_activity_state(
         &self,
         activity_state_id: i64,

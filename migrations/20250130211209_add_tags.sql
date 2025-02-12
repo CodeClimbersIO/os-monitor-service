@@ -24,14 +24,15 @@ CREATE TABLE IF NOT EXISTS activity_state_tag (
 CREATE TABLE IF NOT EXISTS app (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT,
-  app_id TEXT NOT NULL,
+  app_external_id TEXT NOT NULL,
   platform TEXT NOT NULL CHECK (platform IN ('MAC', 'WINDOWS', 'LINUX', 'IOS', 'ANDROID')) DEFAULT 'MAC',
   is_browser BOOLEAN NOT NULL DEFAULT FALSE,
   is_default BOOLEAN NOT NULL DEFAULT FALSE,
   is_blocked BOOLEAN NOT NULL DEFAULT FALSE,
+  metadata TEXT, -- JSON string containing the bundle_id, app_name, and url
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(name, app_id, platform)
+  UNIQUE(app_external_id, platform)
 );
 
 CREATE TABLE IF NOT EXISTS app_tag (
@@ -48,3 +49,15 @@ CREATE TABLE IF NOT EXISTS app_tag (
 );
 
 ALTER TABLE activity ADD COLUMN platform TEXT NOT NULL CHECK (platform IN ('MAC', 'WINDOWS', 'LINUX', 'IOS', 'ANDROID', 'UNKNOWN')) DEFAULT 'MAC';
+
+ALTER TABLE activity ADD COLUMN app_id TEXT REFERENCES app(id);
+
+-- app_id will now be used to identify the activities source. 
+ALTER TABLE activity DROP COLUMN app_name;
+ALTER TABLE activity DROP COLUMN url;
+
+-- Add index for timestamp lookups
+CREATE INDEX idx_activity_timestamp ON activity(timestamp);
+
+-- Add index for activity_state date range queries
+CREATE INDEX idx_activity_state_times ON activity_state(start_time, end_time);

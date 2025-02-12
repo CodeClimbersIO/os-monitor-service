@@ -21,7 +21,7 @@ impl AppSwitchState {
 
     pub fn new_window_activity(&mut self, activity: Activity) {
         if let Some(current_activity) = self.current_activity.clone() {
-            if current_activity.app_name != activity.app_name {
+            if current_activity.app_id != activity.app_id {
                 let now = SystemTime::now();
                 if now
                     .duration_since(self.last_switch_time)
@@ -47,6 +47,7 @@ impl AppSwitchState {
 #[cfg(test)]
 mod tests {
     use time::OffsetDateTime;
+    use uuid::Uuid;
 
     use crate::db::{models::ActivityType, types::Platform};
 
@@ -55,54 +56,46 @@ mod tests {
     #[test]
     fn test_app_switch() {
         let mut app_switch_state = AppSwitchState::new(Duration::from_millis(1));
+        let app_1_id = Uuid::new_v4().to_string();
+        let app_2_id = Uuid::new_v4().to_string();
         app_switch_state.new_window_activity(Activity::new(
             ActivityType::Window,
-            Some("app1".to_string()),
             Some("window1".to_string()),
-            None,
-            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
+            Some(app_1_id.clone()),
         ));
         std::thread::sleep(Duration::from_millis(2));
         app_switch_state.new_window_activity(Activity::new(
             ActivityType::Window,
-            Some("app2".to_string()),
             Some("window2".to_string()),
-            None,
-            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
+            Some(app_1_id.clone()),
         ));
         std::thread::sleep(Duration::from_millis(2));
         app_switch_state.new_window_activity(Activity::new(
             ActivityType::Window,
-            Some("app3".to_string()),
             Some("window3".to_string()),
-            None,
-            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
+            Some(app_1_id.clone()),
         ));
         std::thread::sleep(Duration::from_millis(2));
         app_switch_state.new_window_activity(Activity::new(
             ActivityType::Window,
-            Some("app3".to_string()),
             Some("window4".to_string()),
-            None,
-            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
+            Some(app_2_id.clone()),
         ));
         std::thread::sleep(Duration::from_millis(2));
         app_switch_state.new_window_activity(Activity::new(
             ActivityType::Window,
-            Some("app3".to_string()),
             Some("window5".to_string()),
-            None,
-            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
+            Some(app_1_id.clone()),
         ));
         assert_eq!(app_switch_state.app_switches, 2);
     }
@@ -113,12 +106,10 @@ mod tests {
         for i in 0..5 {
             app_switch_state.new_window_activity(Activity::new(
                 ActivityType::Window,
-                Some(format!("app{}", i)),
                 Some(format!("window{}", i)),
-                None,
-                None,
                 OffsetDateTime::now_utc(),
                 Platform::Mac,
+                Some(Uuid::new_v4().to_string()),
             ));
         }
         assert_eq!(app_switch_state.app_switches, 0);
@@ -129,22 +120,18 @@ mod tests {
         let mut app_switch_state = AppSwitchState::new(Duration::from_millis(1));
         app_switch_state.new_window_activity(Activity::new(
             ActivityType::Window,
-            Some("app1".to_string()),
             Some("window1".to_string()),
-            None,
-            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
+            Some(Uuid::new_v4().to_string()),
         ));
         std::thread::sleep(Duration::from_millis(2));
         app_switch_state.new_window_activity(Activity::new(
             ActivityType::Window,
-            Some("app2".to_string()),
             Some("window2".to_string()),
-            None,
-            None,
             OffsetDateTime::now_utc(),
             Platform::Mac,
+            Some(Uuid::new_v4().to_string()),
         ));
         app_switch_state.reset_app_switches();
         assert_eq!(app_switch_state.app_switches, 0);

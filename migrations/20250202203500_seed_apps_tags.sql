@@ -33,7 +33,7 @@ INSERT INTO tag (id, name, tag_type, is_default) VALUES
 ('31e89317-73da-482b-880c-5bfc5caf8c17', 'utilities', 'category', TRUE);
 
 -- Insert apps
-INSERT INTO app (id, name, app_id, platform, is_browser, is_default) VALUES
+INSERT INTO app (id, name, app_external_id, platform, is_browser, is_default) VALUES
 ('546d594c-7bf0-4c4b-bb1f-a4a2d9a43ed1', '', 'zoom.us', 'MAC', 1, TRUE),
 ('6b25dd14-8cc0-4871-9c0b-cd69ccbc9474', '', 'zee5.com', 'MAC', 1, TRUE),
 ('e4d3a9b8-7622-438c-9d4e-b0bf4c9dbad2', '', 'zara.com', 'MAC', 1, TRUE),
@@ -282,7 +282,6 @@ INSERT INTO app (id, name, app_id, platform, is_browser, is_default) VALUES
 ('f87abf2b-2275-4b11-9102-77b57336d49c', 'Raycast', 'com.raycast.macos', 'MAC', 0, TRUE),
 ('c5ccf136-d759-47e5-b3ff-6dbcc5a05956', 'Postman', 'com.postmanlabs.mac', 'MAC', 0, TRUE),
 ('b89e720a-5ab4-4640-a576-b143a222bf13', 'Visual Studio Code', 'com.microsoft.VSCode', 'MAC', 0, TRUE),
-('8377a24b-ed6a-41b4-b4e4-5f97e35845c7', 'Code', 'com.microsoft.VSCode', 'MAC', 0, TRUE),
 ('017f7930-e70a-4082-8269-8430eac0c300', 'Outlook', 'com.microsoft.Outlook', 'MAC', 0, TRUE),
 ('304fb4fc-e3a1-4c31-8aca-3aa328cd9de7', 'Linear', 'com.linear', 'MAC', 0, TRUE),
 ('bdaa7f1e-ef0b-452f-84f5-954c2d9537f5', 'WebStorm', 'com.jetbrains.WebStorm', 'MAC', 0, TRUE),
@@ -813,8 +812,6 @@ INSERT INTO app_tag (id, app_id, tag_id, weight, is_default) VALUES
 ('b1bd4799-f36e-4d8e-b585-1682e55088ad', 'c5ccf136-d759-47e5-b3ff-6dbcc5a05956', '44c5807e-04d9-4702-86b6-0d1f0287df03', 1, TRUE),
 ('e8081fcb-fe61-4733-9824-23981392a8d3', 'b89e720a-5ab4-4640-a576-b143a222bf13', '5ba10e13-d342-4262-a391-9b9aa95332cd', 1, TRUE),
 ('935cb7f2-d7a8-4867-a63c-bce9f79031e9', 'b89e720a-5ab4-4640-a576-b143a222bf13', '44c5807e-04d9-4702-86b6-0d1f0287df03', 1, TRUE),
-('5246696a-81f9-4b74-a5ae-0a0c5db4a924', '8377a24b-ed6a-41b4-b4e4-5f97e35845c7', '5ba10e13-d342-4262-a391-9b9aa95332cd', 1, TRUE),
-('8ac3b292-a3c4-452d-8482-531bdbdf6e08', '8377a24b-ed6a-41b4-b4e4-5f97e35845c7', '44c5807e-04d9-4702-86b6-0d1f0287df03', 1, TRUE),
 ('584e6e33-2211-4115-857b-7a0b29e1e59d', '017f7930-e70a-4082-8269-8430eac0c300', '80b3e0a5-0477-4f35-b250-2ee1b0de75d3', 1, TRUE),
 ('7c95aa16-ee56-4c73-a6cd-10831acff1cf', '017f7930-e70a-4082-8269-8430eac0c300', '8c4d3cbb-479d-46af-8438-0f909c911b6d', 1, TRUE),
 ('b47ea75a-b338-40cb-ab81-9622d7058e6c', '304fb4fc-e3a1-4c31-8aca-3aa328cd9de7', '80b3e0a5-0477-4f35-b250-2ee1b0de75d3', 0.5, TRUE),

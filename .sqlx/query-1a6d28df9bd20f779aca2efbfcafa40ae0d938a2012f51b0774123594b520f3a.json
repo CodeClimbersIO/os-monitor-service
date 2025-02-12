@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, name, app_id, platform, is_browser, is_default, is_blocked, created_at, updated_at\n            FROM app WHERE name = ? OR name = ?",
+  "query": "SELECT id, name, app_external_id, platform, is_browser, is_default, is_blocked, created_at, updated_at\n            FROM app WHERE name = ? OR name = ?",
   "describe": {
     "columns": [
       {
@@ -14,7 +14,7 @@
         "type_info": "Text"
       },
       {
-        "name": "app_id",
+        "name": "app_external_id",
         "ordinal": 2,
         "type_info": "Text"
       },
@@ -64,5 +64,5 @@
       false
     ]
   },
-  "hash": "4e0769af8691e39c84f0c3068688a8bd210e4c04b7ecaa0a36d9a9a6611630bd"
+  "hash": "1a6d28df9bd20f779aca2efbfcafa40ae0d938a2012f51b0774123594b520f3a"
 }

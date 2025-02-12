@@ -10,7 +10,7 @@ use crate::db::types::Platform;
 pub struct App {
     pub id: Option<String>,
     pub name: Option<String>,
-    pub app_id: String,
+    pub app_external_id: String,
     pub platform: Platform,
     pub is_browser: bool,
     pub is_default: bool,
@@ -24,7 +24,7 @@ impl<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> for App {
         Ok(App {
             id: row.try_get("id")?,
             name: row.try_get("name")?,
-            app_id: row.try_get("app_id")?,
+            app_external_id: row.try_get("app_external_id")?,
             platform: row.try_get("platform")?,
             is_browser: row.try_get("is_browser")?,
             is_default: row.try_get("is_default")?,
@@ -41,7 +41,7 @@ impl App {
             Some(url) => Some(Self::get_domain_from_url(url)),
             None => Some(event.app_name.clone()),
         };
-        let app_id = if let Some(bundle_id) = &event.bundle_id {
+        let app_external_id = if let Some(bundle_id) = &event.bundle_id {
             bundle_id.clone()
         } else {
             url.unwrap_or("".to_string())
@@ -51,7 +51,7 @@ impl App {
             created_at: None,
             updated_at: None,
             name: Some(event.app_name.clone()),
-            app_id: app_id,
+            app_external_id: app_external_id,
             platform: event.platform.clone().into(),
             is_browser: event.url.is_some(),
             is_default: false,
@@ -87,7 +87,7 @@ impl App {
             created_at: None,
             updated_at: None,
             name: Some("Test App".to_string()),
-            app_id: "".to_string(),
+            app_external_id: "".to_string(),
             platform: Platform::Mac,
             is_browser: false,
             is_default: false,
@@ -104,7 +104,7 @@ impl App {
                 created_at: None,
                 updated_at: None,
                 name: Some(name.to_string()),
-                app_id: "".to_string(),
+                app_external_id: "".to_string(),
                 platform: Platform::Mac,
                 is_browser: false,
                 is_default: false,

@@ -15,11 +15,11 @@ impl AppRepo {
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
         sqlx::query!(
-            r#"INSERT INTO app (id, name, app_id, platform, is_browser, is_default) 
+            r#"INSERT INTO app (id, name, app_external_id, platform, is_browser, is_default) 
             VALUES (?, ?, ?, ?, ?, ?)"#,
             app.id,
             app.name,
-            app.app_id,
+            app.app_external_id,
             app.platform as _,
             app.is_browser,
             app.is_default,
@@ -28,11 +28,23 @@ impl AppRepo {
         .await
     }
 
+    pub async fn get_app_by_external_id(&self, external_id: &str) -> Result<App, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+        sqlx::query_as!(
+            App,
+            r#"SELECT id, name, app_external_id, platform, is_browser, is_default, is_blocked, created_at, updated_at
+            FROM app WHERE app_external_id = ?"#,
+            external_id
+        )
+        .fetch_one(&mut *conn)
+        .await
+    }
+
     pub async fn get_app_by_name_or_url(&self, name: &str, url: &str) -> Result<App, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
         sqlx::query_as!(
             App,
-            r#"SELECT id, name, app_id, platform, is_browser, is_default, is_blocked, created_at, updated_at
+            r#"SELECT id, name, app_external_id, platform, is_browser, is_default, is_blocked, created_at, updated_at
             FROM app WHERE name = ? OR name = ?"#,
             name,
             url
@@ -41,11 +53,8 @@ impl AppRepo {
         .await
     }
 
-    pub async fn get_apps_by_app_ids(
-        &self,
-        app_ids: &Vec<String>,
-    ) -> Result<Vec<App>, sqlx::Error> {
-        if app_ids.is_empty() {
+    pub async fn get_apps_by_ids(&self, ids: &Vec<String>) -> Result<Vec<App>, sqlx::Error> {
+        if ids.is_empty() {
             return Ok(Vec::new());
         }
 
@@ -53,13 +62,13 @@ impl AppRepo {
 
         // Create the parameterized query with the correct number of placeholders
         let placeholders = std::iter::repeat("?")
-            .take(app_ids.len())
+            .take(ids.len())
             .collect::<Vec<_>>()
             .join(",");
 
         let query = format!(
-            r#"SELECT id, name, app_id, platform, is_browser, is_default, is_blocked, created_at, updated_at
-            FROM app WHERE app_id IN ({})"#,
+            r#"SELECT id, name, app_external_id, platform, is_browser, is_default, is_blocked, created_at, updated_at
+            FROM app WHERE id IN ({})"#,
             placeholders
         );
 
@@ -67,8 +76,8 @@ impl AppRepo {
         let mut query = sqlx::query_as::<_, App>(&query);
 
         // Bind each parameter
-        for app_id in app_ids {
-            query = query.bind(app_id);
+        for id in ids {
+            query = query.bind(id);
         }
 
         query.fetch_all(&mut *conn).await
