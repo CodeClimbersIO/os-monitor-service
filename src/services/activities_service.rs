@@ -278,7 +278,7 @@ impl ActivityService {
                     .unwrap();
                 log::info!("retrieved latest activities");
                 let activity_period = activity_state_service_clone
-                    .get_next_activity_state_times(activity_state_interval)
+                    .get_just_completed_activity_state(activity_state_interval)
                     .await;
                 log::info!("retrieved next activity state times");
                 activity_service_clone
@@ -467,9 +467,9 @@ mod tests {
         activity.timestamp = Some(now);
         activity_service.save_activity(&activity).await.unwrap();
 
-        // we have an activity_state that started 1 second ago.
+        // we have an activity_state that ended 1 second ago.
         let mut activity_state = ActivityState::new();
-        activity_state.start_time = Some(now - Duration::from_secs(1));
+        activity_state.end_time = Some(now - Duration::from_secs(1));
         activity_service
             .save_activity_state(&activity_state)
             .await

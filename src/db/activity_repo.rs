@@ -11,16 +11,36 @@ impl ActivityRepo {
         ActivityRepo { pool }
     }
 
+    pub async fn get_last_activity(&self) -> Result<Activity, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+        sqlx::query_as!(
+            Activity,
+            r#"SELECT id, created_at, timestamp, activity_type as "activity_type: _", app_id, app_window_title, platform as "platform: _" FROM activity ORDER BY id DESC LIMIT 1"#
+        )
+        .fetch_one(&mut *conn)
+        .await
+    }
+
     pub async fn save_activity(
         &self,
         activity: &Activity,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
+        let app_id = if activity.app_id.is_none() {
+            // if no app_id, try to get the last known app_id, defaulting to None if no previous activity exists
+            match self.get_last_activity().await {
+                Ok(last_activity) => last_activity.app_id,
+                Err(_) => None,
+            }
+        } else {
+            activity.app_id.clone()
+        };
+
         let mut conn = self.pool.acquire().await?;
         sqlx::query!(
             r#"INSERT INTO activity (activity_type, app_id, app_window_title, timestamp, platform) 
             VALUES (?, ?, ?, ?, ?)"#,
             activity.activity_type as _,
-            activity.app_id,
+            app_id,
             activity.app_window_title,
             activity.timestamp,
             activity.platform as _,
@@ -69,16 +89,16 @@ impl ActivityRepo {
             Activity,
             r#"
             SELECT id, created_at, timestamp, 
-                   activity_type as "activity_type: _",
-                   app_id, app_window_title, 
-                   platform as "platform: _" 
-            FROM activity 
-            WHERE timestamp > (
-                SELECT start_time 
-                FROM activity_state 
-                WHERE id = (SELECT MAX(id) FROM activity_state)
-            )
-            ORDER BY timestamp ASC
+                activity_type as "activity_type: _",
+                app_id, app_window_title, 
+                platform as "platform: _"
+            FROM activity a
+                WHERE a.timestamp > (
+                    SELECT end_time 
+                    FROM activity_state 
+                    ORDER BY id DESC LIMIT 1
+                )
+            ORDER BY a.timestamp ASC
             "#
         )
         .fetch_all(&mut *conn)
