@@ -269,6 +269,7 @@ impl ActivityService {
         let activity_state_service_clone = self.activity_state_service.clone();
         tokio::spawn(async move {
             let mut wait_interval = tokio::time::interval(activity_state_interval);
+            wait_interval.tick().await;
             loop {
                 log::info!("tick");
                 wait_interval.tick().await;
