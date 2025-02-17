@@ -107,7 +107,6 @@ impl AppService {
      */
     pub async fn handle_window_event(&self, event: &WindowEvent) -> Result<String, sqlx::Error> {
         let raw_app = App::new(&event);
-
         let app = self.get_app_by_external_id(&raw_app.app_external_id).await;
         if let Ok(app) = app {
             return Ok(app.id.unwrap());
@@ -129,13 +128,13 @@ impl AppService {
         &self,
         app_id: Option<String>,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
-        let consuming_tag = self
+        let neutral_tag = self
             .tag_repo
-            .get_tag_by_name("consuming")
+            .get_tag_by_name("neutral")
             .await
-            .expect("Failed to get consuming tag");
-        log::info!("consuming_tag: {:?}", consuming_tag);
-        if let (Some(app_id), Some(tag_id)) = (app_id, consuming_tag.id.clone()) {
+            .expect("Failed to get neutral tag");
+        log::info!("neutral_tag: {:?}", neutral_tag);
+        if let (Some(app_id), Some(tag_id)) = (app_id, neutral_tag.id.clone()) {
             log::info!("app_id: {:?}", app_id);
             log::info!("tag_id: {:?}", tag_id);
             self.tag_repo.create_app_tag(app_id, tag_id, 1.0).await

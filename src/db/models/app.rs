@@ -37,15 +37,22 @@ impl<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> for App {
 
 impl App {
     pub fn new(event: &WindowEvent) -> App {
+        // if the event has a url, we use the url as the app_external_id
+        // if the event has a bundle_id, we use the bundle_id as the app_external_id
+        // if the event has neither, we use the app_name as the app_external_id
         let url = match &event.url {
             Some(url) => Some(Self::get_domain_from_url(url)),
-            None => Some(event.app_name.clone()),
+            None => None,
         };
-        let app_external_id = if let Some(bundle_id) = &event.bundle_id {
+
+        let app_external_id = if let Some(url) = url {
+            url.clone()
+        } else if let Some(bundle_id) = &event.bundle_id {
             bundle_id.clone()
         } else {
-            url.unwrap_or("".to_string())
+            event.app_name.clone()
         };
+
         App {
             id: Some(uuid::Uuid::new_v4().to_string()),
             created_at: None,

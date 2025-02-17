@@ -385,7 +385,32 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(activity.app_id, Some(app.id.unwrap()));
-        assert_eq!(tag.name, "consuming");
+        assert_eq!(tag.name, "neutral");
+    }
+
+    #[tokio::test]
+    async fn test_on_window_event_new_app_has_url() {
+        let pool = db_manager::create_test_db().await;
+        let activity_service = ActivityService::new(pool);
+        let event = WindowEvent {
+            app_name: "New App".to_string(),
+            window_title: "main.rs - app-codeclimbers".to_string(),
+            url: Some("https://mail.google.com".to_string()),
+            bundle_id: None,
+            platform: Platform::Mac,
+        };
+        activity_service.handle_window_activity(event).await;
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+        let activity = activity_service.get_activity(1).await.unwrap();
+        let app = activity_service
+            .app_service
+            .get_app_by_external_id("mail.google.com")
+            .await
+            .unwrap();
+        assert_eq!(activity.app_id, Some(app.id.unwrap()));
+        assert_eq!(app.app_external_id, "mail.google.com");
     }
 
     #[tokio::test]
