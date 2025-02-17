@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT id, created_at, timestamp, \n                activity_type as \"activity_type: _\",\n                app_id, app_window_title, \n                platform as \"platform: _\"\n            FROM activity a\n                WHERE a.timestamp > (\n                    SELECT end_time \n                    FROM activity_state \n                    ORDER BY id DESC LIMIT 1\n                )\n            ORDER BY a.timestamp ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 1,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "timestamp",
+        "ordinal": 2,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "activity_type: _",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "app_id",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "app_window_title",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "platform: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "1edcfb3ab477fec78920440dad349bcf9865ed35b5238c06c246b646d1a1c077"
+}

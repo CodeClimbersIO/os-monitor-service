@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use once_cell::sync::Lazy;
-use os_monitor::{Monitor, WindowEvent};
+use os_monitor::{KeyboardEvent, Monitor, MouseEvent, WindowEvent};
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
 
@@ -14,6 +14,7 @@ use self::activity_state_service::ActivityPeriod;
 
 use super::{
     activity_state_service::{self, ActivityStateService},
+    app_service::AppService,
     app_switch_service::AppSwitchState,
 };
 
@@ -29,13 +30,15 @@ static APP_SWITCH_STATE: Lazy<Mutex<AppSwitchState>> =
 pub struct ActivityService {
     activities_repo: ActivityRepo,
     activity_state_repo: ActivityStateRepo,
+    app_service: AppService,
     event_sender: mpsc::UnboundedSender<ActivityEvent>,
     activity_state_service: ActivityStateService,
 }
 
+#[derive(Debug)]
 enum ActivityEvent {
-    Keyboard(),
-    Mouse(),
+    Keyboard(KeyboardEvent),
+    Mouse(MouseEvent),
     Window(WindowEvent),
 }
 
@@ -45,12 +48,13 @@ impl ActivityService {
         let activities_repo = ActivityRepo::new(pool.clone());
         let activity_state_repo = ActivityStateRepo::new(pool.clone());
         let activity_state_service = ActivityStateService::new(pool.clone());
-
+        let app_service = AppService::new(pool.clone());
         let service = ActivityService {
             activities_repo,
             activity_state_repo,
-            activity_state_service,
+            app_service,
             event_sender: sender,
+            activity_state_service,
         };
         let callback_service_clone = service.clone();
         // let activity_state_clone = service.clone();
@@ -58,12 +62,14 @@ impl ActivityService {
         tokio::spawn(async move {
             while let Some(event) = receiver.recv().await {
                 match event {
-                    ActivityEvent::Keyboard() => {
-                        callback_service_clone.handle_keyboard_activity().await
+                    ActivityEvent::Keyboard(event) => {
+                        callback_service_clone.handle_keyboard_activity(event).await
                     }
-                    ActivityEvent::Mouse() => callback_service_clone.handle_mouse_activity().await,
-                    ActivityEvent::Window(e) => {
-                        callback_service_clone.handle_window_activity(e).await
+                    ActivityEvent::Mouse(event) => {
+                        callback_service_clone.handle_mouse_activity(event).await
+                    }
+                    ActivityEvent::Window(event) => {
+                        callback_service_clone.handle_window_activity(event).await
                     }
                 }
             }
@@ -72,45 +78,59 @@ impl ActivityService {
         service
     }
 
-    async fn handle_keyboard_activity(&self) {
-        let activity = Activity::create_keyboard_activity();
+    async fn handle_keyboard_activity(&self, event: KeyboardEvent) {
+        log::info!("{}: {:?}", "handle_keyboard_activity", event);
+        let activity = Activity::create_keyboard_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
-            eprintln!("Failed to save keyboard activity: {}", err);
+            log::error!("Failed to save keyboard activity: {}", err);
         }
     }
 
-    async fn handle_mouse_activity(&self) {
-        let activity = Activity::create_mouse_activity();
+    async fn handle_mouse_activity(&self, event: MouseEvent) {
+        log::info!("{}: {:?}", "handle_mouse_activity", event);
+        let activity = Activity::create_mouse_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
-            eprintln!("Failed to save mouse activity: {}", err);
+            log::error!("Failed to save mouse activity: {}", err);
         }
     }
 
-    async fn handle_window_activity(&self, event: WindowEvent) {
-        let activity = Activity::create_window_activity(&event);
-        if let Err(err) = self.save_activity(&activity).await {
-            eprintln!("Failed to save window activity: {}", err);
+    pub async fn handle_window_activity(&self, event: WindowEvent) {
+        log::info!("{}: {:?}", "handle_window_activity", event);
+        let app_id = self.app_service.handle_window_event(&event).await;
+        if let Ok(app_id) = app_id {
+            let activity = Activity::create_window_activity(&event, Some(app_id));
+            if let Err(err) = self.save_activity(&activity).await {
+                println!("Failed to save window activity: {}", err);
+                log::error!("Failed to save window activity: {}", err);
+            }
+            let mut app_switch_state = APP_SWITCH_STATE.lock();
+            app_switch_state.new_window_activity(activity);
+        } else {
+            println!("Failed to get or create app id");
+            log::error!("Failed to get or create app id");
         }
     }
 
     pub fn register_callbacks(&self, event_callback_service: &Arc<Monitor>) {
         let sender = self.event_sender.clone();
-        event_callback_service.register_keyboard_callback(Box::new(move |_| {
-            let _ = sender.send(ActivityEvent::Keyboard());
+        event_callback_service.register_keyboard_callback(Box::new(move |event| {
+            let event = event.first();
+            if let Some(event) = event {
+                let _ = sender.send(ActivityEvent::Keyboard(event.clone()));
+            }
         }));
 
         let sender = self.event_sender.clone();
-        event_callback_service.register_mouse_callback(Box::new(move |_| {
-            let _ = sender.send(ActivityEvent::Mouse());
+        event_callback_service.register_mouse_callback(Box::new(move |event| {
+            let event = event.first();
+            if let Some(event) = event {
+                let _ = sender.send(ActivityEvent::Mouse(event.clone()));
+            }
         }));
 
         let sender = self.event_sender.clone();
         event_callback_service.register_window_callback(Box::new(move |event| {
             log::info!("register_window_callback");
-            let mut app_switch_state = APP_SWITCH_STATE.lock();
-            let activity = Activity::create_window_activity(&event);
-            app_switch_state.new_window_activity(activity);
-
             let _ = sender.send(ActivityEvent::Window(event));
         }));
     }
@@ -137,12 +157,45 @@ impl ActivityService {
             .await
     }
 
-    async fn get_activities_since_last_activity_state(&self) -> Result<Vec<Activity>, sqlx::Error> {
+    pub async fn get_activities_since_last_activity_state(
+        &self,
+    ) -> Result<Vec<Activity>, sqlx::Error> {
         self.activities_repo
             .get_activities_since_last_activity_state()
             .await
     }
 
+    async fn create_idle_activity_state(
+        &self,
+        activity_period: ActivityPeriod,
+    ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
+        self.activity_state_repo
+            .create_idle_activity_state(&activity_period)
+            .await
+            .expect("Failed to create idle activity state");
+
+        let activity_state = self
+            .activity_state_service
+            .get_last_activity_state()
+            .await
+            .expect("Failed to get activity state");
+
+        if let Some(activity_state_id) = activity_state.id {
+            self.app_service.create_idle_tag(activity_state_id).await
+        } else {
+            eprintln!("Cannot create tags: activity state has no ID");
+            Err(sqlx::Error::RowNotFound)
+        }
+    }
+
+    /**
+     * Creates an activity state from a list of activities.
+     * If the activities are empty, it creates an idle activity state.
+     * It also creates an idle tag for the idle activity state.
+     * If the activities are not empty, it creates an active activity state.
+     * For tags, we get all matching tags for the activites and create those tags for the activity state.
+     * If there were no window activities, we use the last window activity to create the tags (writing code to a single file for more than 30 seconds).
+     */
     async fn create_activity_state_from_activities(
         &self,
         activities: Vec<Activity>,
@@ -155,28 +208,42 @@ impl ActivityService {
         );
 
         if activities.is_empty() {
-            log::info!("create_activity_state_from_activities: empty");
-            self.activity_state_repo
-                .create_idle_activity_state(&activity_period)
-                .await
+            log::info!("  create_activity_state_from_activities: empty");
+            self.create_idle_activity_state(activity_period).await
         } else {
-            log::info!("create_activity_state_from_activities: not empty");
+            log::info!("  create_activity_state_from_activities: not empty");
             // First lock: Get the context switches
             let context_switches = {
                 let app_switch = APP_SWITCH_STATE.lock();
                 app_switch.app_switches.clone()
             }; // lock is released here
-            log::info!("context_switches: {:?}", context_switches);
+            log::info!("  context_switches: {:?}", context_switches);
             let result = self
                 .activity_state_repo
                 .create_active_activity_state(context_switches, &activity_period)
                 .await;
-            log::info!("created activity state");
+            log::info!("  created activity state");
+
+            let activity_state = self
+                .activity_state_service
+                .get_last_activity_state()
+                .await
+                .expect("Failed to get activity state");
+
+            // Only create tags if we have a valid activity state ID
+            if let Some(activity_state_id) = activity_state.id {
+                self.app_service
+                    .create_tags_from_activities(&activities, activity_state_id)
+                    .await
+                    .expect("Failed to create activity state tags");
+            } else {
+                eprintln!("Cannot create tags: activity state has no ID");
+            }
             {
                 let mut app_switch = APP_SWITCH_STATE.lock();
                 app_switch.reset_app_switches();
             } // lock is released here
-            log::info!("reset_app_switches");
+            log::info!("  reset_app_switches");
             result
         }
     }
@@ -202,6 +269,7 @@ impl ActivityService {
         let activity_state_service_clone = self.activity_state_service.clone();
         tokio::spawn(async move {
             let mut wait_interval = tokio::time::interval(activity_state_interval);
+            wait_interval.tick().await;
             loop {
                 log::info!("tick");
                 wait_interval.tick().await;
@@ -211,7 +279,7 @@ impl ActivityService {
                     .unwrap();
                 log::info!("retrieved latest activities");
                 let activity_period = activity_state_service_clone
-                    .get_next_activity_state_times(activity_state_interval)
+                    .get_just_completed_activity_state(activity_state_interval)
                     .await;
                 log::info!("retrieved next activity state times");
                 activity_service_clone
@@ -235,6 +303,7 @@ mod tests {
 
     use os_monitor::{Platform, WindowEvent};
     use time::OffsetDateTime;
+    use uuid::Uuid;
 
     use super::*;
     use crate::db::{
@@ -245,8 +314,8 @@ mod tests {
     #[tokio::test]
     async fn test_activity_service() {
         let pool = db_manager::create_test_db().await;
-        let activity_service = ActivityService::new(pool);
-        let activity = Activity::__create_test_window();
+        let activity_service = ActivityService::new(pool.clone());
+        let activity = Activity::__create_test_window(None, None);
 
         activity_service.save_activity(&activity).await.unwrap();
     }
@@ -254,8 +323,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_activity() {
         let pool = db_manager::create_test_db().await;
-        let activity_service = ActivityService::new(pool);
-        let activity = Activity::__create_test_window();
+        let activity_service = ActivityService::new(pool.clone());
+        let activity = Activity::__create_test_window(None, None);
         activity_service.save_activity(&activity).await.unwrap();
 
         let activity = activity_service.get_activity(1).await.unwrap();
@@ -266,7 +335,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_on_window_event() {
+    async fn test_on_window_event_existing_app() {
         let pool = db_manager::create_test_db().await;
         let activity_service = ActivityService::new(pool);
         let event = WindowEvent {
@@ -281,14 +350,78 @@ mod tests {
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
         let activity = activity_service.get_activity(1).await.unwrap();
-        assert_eq!(activity.app_name, Some("Cursor".to_string()));
+        let app = activity_service
+            .app_service
+            .get_app_by_external_id("com.ebb.app")
+            .await
+            .unwrap();
+        assert_eq!(activity.app_id, Some(app.id.unwrap()));
+    }
+
+    #[tokio::test]
+    async fn test_on_window_event_new_app() {
+        let pool = db_manager::create_test_db().await;
+        let activity_service = ActivityService::new(pool);
+        let event = WindowEvent {
+            app_name: "New App".to_string(),
+            window_title: "main.rs - app-codeclimbers".to_string(),
+            url: None,
+            bundle_id: Some("com.new.new".to_string()),
+            platform: Platform::Mac,
+        };
+        activity_service.handle_window_activity(event).await;
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+        let activity = activity_service.get_activity(1).await.unwrap();
+        let app = activity_service
+            .app_service
+            .get_app_by_external_id("com.new.new")
+            .await
+            .unwrap();
+        let tag = activity_service
+            .app_service
+            .get_app_tag_by_app_id(&app.id.clone().unwrap().to_string())
+            .await
+            .unwrap();
+        assert_eq!(activity.app_id, Some(app.id.unwrap()));
+        assert_eq!(tag.name, "neutral");
+    }
+
+    #[tokio::test]
+    async fn test_on_window_event_new_app_has_url() {
+        let pool = db_manager::create_test_db().await;
+        let activity_service = ActivityService::new(pool);
+        let event = WindowEvent {
+            app_name: "New App".to_string(),
+            window_title: "main.rs - app-codeclimbers".to_string(),
+            url: Some("https://mail.google.com".to_string()),
+            bundle_id: None,
+            platform: Platform::Mac,
+        };
+        activity_service.handle_window_activity(event).await;
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+        let activity = activity_service.get_activity(1).await.unwrap();
+        let app = activity_service
+            .app_service
+            .get_app_by_external_id("mail.google.com")
+            .await
+            .unwrap();
+        assert_eq!(activity.app_id, Some(app.id.unwrap()));
+        assert_eq!(app.app_external_id, "mail.google.com");
     }
 
     #[tokio::test]
     async fn test_on_keyboard_event() {
         let pool = db_manager::create_test_db().await;
         let activity_service = ActivityService::new(pool);
-        activity_service.handle_keyboard_activity().await;
+        let event = KeyboardEvent {
+            key_code: 1,
+            platform: Platform::Mac,
+        };
+        activity_service.handle_keyboard_activity(event).await;
 
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
@@ -320,7 +453,10 @@ mod tests {
     async fn test_create_activity_state_from_activities_active() {
         let pool = db_manager::create_test_db().await;
         let activity_service = ActivityService::new(pool);
-        let activities = vec![Activity::__create_test_window()];
+        let activities = vec![Activity::__create_test_window(
+            None,
+            Some(Uuid::new_v4().to_string()),
+        )];
         let result = activity_service
             .create_activity_state_from_activities(
                 activities,
@@ -343,23 +479,23 @@ mod tests {
         let now = OffsetDateTime::now_utc();
 
         // we have an activity at time 2 seconds ago.
-        let mut activity = Activity::__create_test_window();
+        let mut activity = Activity::__create_test_window(None, None);
         activity.timestamp = Some(now - Duration::from_secs(2));
         activity_service.save_activity(&activity).await.unwrap();
 
         // we have an activity at time 1 second ago.
-        let mut activity = Activity::__create_test_window();
+        let mut activity = Activity::__create_test_window(None, None);
         activity.timestamp = Some(now - Duration::from_secs(1));
         activity_service.save_activity(&activity).await.unwrap();
 
         // we have an activity at time 0 seconds ago.
-        let mut activity = Activity::__create_test_window();
+        let mut activity = Activity::__create_test_window(None, None);
         activity.timestamp = Some(now);
         activity_service.save_activity(&activity).await.unwrap();
 
-        // we have an activity_state that started 1 second ago.
+        // we have an activity_state that ended 1 second ago.
         let mut activity_state = ActivityState::new();
-        activity_state.start_time = Some(now - Duration::from_secs(1));
+        activity_state.end_time = Some(now - Duration::from_secs(1));
         activity_service
             .save_activity_state(&activity_state)
             .await

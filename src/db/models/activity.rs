@@ -1,6 +1,8 @@
-use os_monitor::WindowEvent;
+use os_monitor::{KeyboardEvent, MouseEvent, WindowEvent};
 use sqlx::Row;
 use time::OffsetDateTime;
+
+use crate::db::types::Platform;
 
 #[derive(Debug, sqlx::Type, PartialEq, Clone)]
 #[sqlx(type_name = "TEXT", rename_all = "UPPERCASE")]
@@ -27,10 +29,9 @@ pub struct Activity {
     pub created_at: Option<OffsetDateTime>,
     pub timestamp: Option<OffsetDateTime>,
     pub activity_type: ActivityType,
-    pub app_name: Option<String>,
     pub app_window_title: Option<String>,
-    pub url: Option<String>,
-    pub bundle_id: Option<String>,
+    pub platform: Platform,
+    pub app_id: Option<String>,
 }
 
 impl<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> for Activity {
@@ -40,10 +41,9 @@ impl<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> for Activity {
             created_at: row.try_get("created_at")?,
             timestamp: row.try_get("timestamp")?,
             activity_type: row.try_get("activity_type")?,
-            app_name: row.try_get("app_name")?,
             app_window_title: row.try_get("app_window_title")?,
-            url: row.try_get("url")?,
-            bundle_id: row.try_get("bundle_id")?,
+            platform: row.try_get("platform")?,
+            app_id: row.try_get("app_id")?,
         })
     }
 }
@@ -51,68 +51,66 @@ impl<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> for Activity {
 impl Activity {
     pub fn new(
         activity_type: ActivityType,
-        app_name: Option<String>,
         app_window_title: Option<String>,
-        bundle_id: Option<String>,
-        url: Option<String>,
         timestamp: OffsetDateTime,
+        platform: Platform,
+        app_id: Option<String>,
     ) -> Self {
         Activity {
             id: None,
             created_at: Some(OffsetDateTime::now_utc()),
             timestamp: Some(timestamp),
             activity_type,
-            app_name,
             app_window_title,
-            url,
-            bundle_id,
+            platform,
+            app_id,
         }
     }
 
-    pub fn create_window_activity(event: &WindowEvent) -> Self {
+    pub fn create_window_activity(event: &WindowEvent, app_id: Option<String>) -> Self {
         log::info!("create_window_activity: {:?}", event);
         Self::new(
             ActivityType::Window,
-            Some(event.app_name.clone()),
             Some(event.window_title.clone()),
-            event.bundle_id.clone(),
-            event.url.clone(),
             OffsetDateTime::now_utc(),
+            event.platform.into(),
+            app_id,
         )
     }
 
-    pub fn create_mouse_activity() -> Self {
+    pub fn create_mouse_activity(event: &MouseEvent) -> Self {
         Self::new(
             ActivityType::Mouse,
             None,
-            None,
-            None,
-            None,
             OffsetDateTime::now_utc(),
+            event.platform.into(),
+            None,
         )
     }
 
-    pub fn create_keyboard_activity() -> Self {
+    pub fn create_keyboard_activity(event: &KeyboardEvent) -> Self {
         Self::new(
             ActivityType::Keyboard,
             None,
-            None,
-            None,
-            None,
             OffsetDateTime::now_utc(),
+            event.platform.into(),
+            None,
         )
     }
 
     #[cfg(test)]
-    pub fn __create_test_window() -> Self {
+    pub fn __create_test_window(app_name: Option<String>, app_id: Option<String>) -> Self {
         use os_monitor::Platform;
 
-        Self::create_window_activity(&WindowEvent {
-            app_name: "Cursor".to_string(),
-            window_title: "main.rs - app-codeclimbers".to_string(),
-            url: None,
-            bundle_id: Some("com.ebb.app".to_string()),
-            platform: Platform::Mac,
-        })
+        Self::create_window_activity(
+            &WindowEvent {
+                window_title: "main.rs - app-codeclimbers".to_string(),
+                platform: Platform::Mac,
+                app_name: app_name.unwrap_or("Cursor".to_string()),
+                bundle_id: Some("com.ebb.app".to_string()),
+                url: Some("https://cursor.com".to_string()),
+            },
+            app_id,
+        )
     }
 }

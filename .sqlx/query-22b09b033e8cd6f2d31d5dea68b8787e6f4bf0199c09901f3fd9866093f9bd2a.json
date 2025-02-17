@@ -1,47 +1,47 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT * FROM activity WHERE id = ?",
+  "query": "SELECT * FROM tag WHERE name = ?",
   "describe": {
     "columns": [
       {
         "name": "id",
         "ordinal": 0,
-        "type_info": "Integer"
+        "type_info": "Text"
       },
       {
-        "name": "activity_type",
+        "name": "name",
         "ordinal": 1,
         "type_info": "Text"
       },
       {
-        "name": "app_name",
+        "name": "parent_tag_id",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "app_window_title",
+        "name": "tag_type",
         "ordinal": 3,
         "type_info": "Text"
       },
       {
-        "name": "created_at",
+        "name": "is_blocked",
         "ordinal": 4,
-        "type_info": "Datetime"
+        "type_info": "Bool"
       },
       {
-        "name": "timestamp",
+        "name": "is_default",
         "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 6,
         "type_info": "Datetime"
       },
       {
-        "name": "url",
-        "ordinal": 6,
-        "type_info": "Text"
-      },
-      {
-        "name": "bundle_id",
+        "name": "updated_at",
         "ordinal": 7,
-        "type_info": "Text"
+        "type_info": "Datetime"
       }
     ],
     "parameters": {
@@ -51,12 +51,12 @@
       false,
       false,
       true,
-      true,
       false,
       false,
-      true,
-      true
+      false,
+      false,
+      false
     ]
   },
-  "hash": "30f459e1778dbcf8c2291fd9283dd01a76482a9bc9ba46f97c28fbb2561940f3"
+  "hash": "22b09b033e8cd6f2d31d5dea68b8787e6f4bf0199c09901f3fd9866093f9bd2a"
 }
