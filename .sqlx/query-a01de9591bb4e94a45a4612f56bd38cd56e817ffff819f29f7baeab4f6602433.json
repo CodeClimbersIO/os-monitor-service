@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, name, app_external_id, platform, is_browser, is_default, is_blocked, created_at, updated_at\n            FROM app WHERE app_external_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "app_external_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "platform",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_browser",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "is_default",
+        "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "is_blocked",
+        "ordinal": 6,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 8,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a01de9591bb4e94a45a4612f56bd38cd56e817ffff819f29f7baeab4f6602433"
+}

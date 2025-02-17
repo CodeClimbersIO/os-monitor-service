@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT id, created_at, timestamp, \n                   activity_type as \"activity_type: _\",\n                   app_id, app_window_title, \n                   platform as \"platform: _\" \n            FROM activity \n            WHERE timestamp > (\n                SELECT start_time \n                FROM activity_state \n                WHERE id = (SELECT MAX(id) FROM activity_state)\n            )\n            ORDER BY timestamp ASC\n            ",
+  "query": "\n            SELECT id, created_at, timestamp, \n                activity_type as \"activity_type: _\",\n                app_id, app_window_title, \n                platform as \"platform: _\"\n            FROM activity a\n                WHERE a.timestamp > (\n                    SELECT end_time \n                    FROM activity_state \n                    ORDER BY id DESC LIMIT 1\n                )\n            ORDER BY a.timestamp ASC\n            ",
   "describe": {
     "columns": [
       {
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "02a366ce690fdec72c7e4af8217fe46c5c4dd64b1183a8ce3a4a897ec1bf4e4f"
+  "hash": "1edcfb3ab477fec78920440dad349bcf9865ed35b5238c06c246b646d1a1c077"
 }
