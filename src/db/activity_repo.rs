@@ -11,23 +11,13 @@ impl ActivityRepo {
         ActivityRepo { pool }
     }
 
-    pub async fn get_last_activity(&self) -> Result<Activity, sqlx::Error> {
-        let mut conn = self.pool.acquire().await?;
-        sqlx::query_as!(
-            Activity,
-            r#"SELECT id, created_at, timestamp, activity_type as "activity_type: _", app_id, app_window_title, platform as "platform: _" FROM activity ORDER BY id DESC LIMIT 1"#
-        )
-        .fetch_one(&mut *conn)
-        .await
-    }
-
     pub async fn save_activity(
         &self,
         activity: &Activity,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         let app_id = if activity.app_id.is_none() {
             // if no app_id, try to get the last known app_id, defaulting to None if no previous activity exists
-            match self.get_last_activity().await {
+            match self.get_last_activity_by_type(ActivityType::Window).await {
                 Ok(last_activity) => last_activity.app_id,
                 Err(_) => None,
             }

@@ -4,11 +4,11 @@ use std::{sync::Arc, time::Duration};
 use dotenv::dotenv;
 
 use os_monitor::{
-    detect_changes, has_accessibility_permissions, initialize_monitor,
-    request_accessibility_permissions, Monitor,
+    detect_changes, has_accessibility_permissions, request_accessibility_permissions,
+    start_monitoring, Monitor,
 };
 use os_monitor_service::{db::db_manager, initialize_monitoring_service};
-use tokio::{self, time::sleep};
+use tokio::{self};
 
 #[tokio::main]
 async fn main() {
@@ -27,12 +27,20 @@ async fn main() {
     let monitor = Arc::new(Monitor::new());
     let db_path = db_manager::get_default_db_path();
     initialize_monitoring_service(monitor.clone(), db_path).await;
-    initialize_monitor(monitor.clone()).expect("Failed to initialize monitor");
 
     tokio::time::sleep(Duration::from_millis(350)).await;
 
+    std::thread::spawn(move || {
+        start_monitoring();
+    });
+    std::thread::spawn(move || {
+        // initialize_monitor(monitor_clone).expect("Failed to initialize monitor");
+        loop {
+            detect_changes().expect("Failed to detect changes");
+            std::thread::sleep(std::time::Duration::from_secs(1));
+        }
+    });
     loop {
-        sleep(Duration::from_secs(1)).await;
-        detect_changes().expect("Failed to detect changes");
+        std::thread::sleep(std::time::Duration::from_secs(1));
     }
 }
