@@ -1,11 +1,11 @@
 extern crate dotenv;
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use dotenv::dotenv;
 
 use os_monitor::{
-    detect_changes, has_accessibility_permissions, request_accessibility_permissions,
-    start_monitoring, Monitor,
+    detect_changes, get_application_icon_data, has_accessibility_permissions,
+    request_accessibility_permissions, Monitor,
 };
 use os_monitor_service::{db::db_manager, initialize_monitoring_service};
 use tokio::{self};
@@ -26,13 +26,12 @@ async fn main() {
 
     let monitor = Arc::new(Monitor::new());
     let db_path = db_manager::get_default_db_path();
+
+    let icon_data = get_application_icon_data("com.apple.finder");
+    println!("icon_data: {}", icon_data.unwrap());
+
     initialize_monitoring_service(monitor.clone(), db_path).await;
 
-    tokio::time::sleep(Duration::from_millis(350)).await;
-
-    std::thread::spawn(move || {
-        start_monitoring();
-    });
     std::thread::spawn(move || {
         // initialize_monitor(monitor_clone).expect("Failed to initialize monitor");
         loop {
