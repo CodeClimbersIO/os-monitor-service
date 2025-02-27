@@ -114,17 +114,15 @@ impl ActivityService {
     pub fn register_callbacks(&self, event_callback_service: &Arc<Monitor>) {
         let sender = self.event_sender.clone();
         event_callback_service.register_keyboard_callback(Box::new(move |event| {
-            let event = event.first();
-            if let Some(event) = event {
-                let _ = sender.send(ActivityEvent::Keyboard(event.clone()));
+            if event {
+                let _ = sender.send(ActivityEvent::Keyboard(KeyboardEvent {}));
             }
         }));
 
         let sender = self.event_sender.clone();
         event_callback_service.register_mouse_callback(Box::new(move |event| {
-            let event = event.first();
-            if let Some(event) = event {
-                let _ = sender.send(ActivityEvent::Mouse(event.clone()));
+            if event {
+                let _ = sender.send(ActivityEvent::Mouse(MouseEvent {}));
             }
         }));
 
@@ -417,10 +415,7 @@ mod tests {
     async fn test_on_keyboard_event() {
         let pool = db_manager::create_test_db().await;
         let activity_service = ActivityService::new(pool);
-        let event = KeyboardEvent {
-            key_code: 1,
-            platform: Platform::Mac,
-        };
+        let event = KeyboardEvent {};
         activity_service.handle_keyboard_activity(event).await;
 
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;

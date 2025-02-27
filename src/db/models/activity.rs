@@ -78,22 +78,22 @@ impl Activity {
         )
     }
 
-    pub fn create_mouse_activity(event: &MouseEvent) -> Self {
+    pub fn create_mouse_activity(_: &MouseEvent) -> Self {
         Self::new(
             ActivityType::Mouse,
             None,
             OffsetDateTime::now_utc(),
-            event.platform.into(),
+            Platform::Mac,
             None,
         )
     }
 
-    pub fn create_keyboard_activity(event: &KeyboardEvent) -> Self {
+    pub fn create_keyboard_activity(_: &KeyboardEvent) -> Self {
         Self::new(
             ActivityType::Keyboard,
             None,
             OffsetDateTime::now_utc(),
-            event.platform.into(),
+            Platform::Mac,
             None,
         )
     }

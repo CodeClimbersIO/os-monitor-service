@@ -121,6 +121,38 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_get_just_completed_activity_state_last_activity_state_within_5_seconds_before() {
+        let pool = db_manager::create_test_db().await;
+        let activity_state_service = ActivityStateService::new(pool.clone());
+        let activity_state_repo = ActivityStateRepo::new(pool.clone());
+        let interval = 120;
+        // create activity state with an end time within 5 seconds of an interval before now
+        let mut activity_state = ActivityState::new();
+        activity_state.start_time =
+            Some(OffsetDateTime::now_utc() - Duration::from_secs(interval + 119));
+        activity_state.end_time = Some(OffsetDateTime::now_utc() - Duration::from_secs(interval));
+        activity_state_repo
+            .save_activity_state(&activity_state)
+            .await
+            .unwrap();
+
+        let activity_period = activity_state_service
+            .get_just_completed_activity_state(Duration::from_secs(interval))
+            .await;
+
+        assert_datetime_eq(
+            activity_period.start_time,
+            activity_state.end_time.unwrap(),
+            Duration::from_millis(1),
+        );
+        assert_datetime_eq(
+            activity_period.end_time,
+            activity_state.end_time.unwrap() + Duration::from_secs(120),
+            Duration::from_millis(1),
+        );
+    }
+
+    #[tokio::test]
     async fn test_get_just_completed_activity_state_last_activity_state_not_within_5_seconds() {
         let pool = db_manager::create_test_db().await;
         let interval = 120;
