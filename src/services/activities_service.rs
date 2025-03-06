@@ -79,7 +79,7 @@ impl ActivityService {
     }
 
     async fn handle_keyboard_activity(&self, event: KeyboardEvent) {
-        log::info!("{}: {:?}", "handle_keyboard_activity", event);
+        log::trace!("{}: {:?}", "handle_keyboard_activity", event);
         let activity = Activity::create_keyboard_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             log::error!("Failed to save keyboard activity: {}", err);
@@ -87,7 +87,7 @@ impl ActivityService {
     }
 
     async fn handle_mouse_activity(&self, event: MouseEvent) {
-        log::info!("{}: {:?}", "handle_mouse_activity", event);
+        log::trace!("{}: {:?}", "handle_mouse_activity", event);
         let activity = Activity::create_mouse_activity(&event);
         if let Err(err) = self.save_activity(&activity).await {
             log::error!("Failed to save mouse activity: {}", err);
@@ -95,18 +95,16 @@ impl ActivityService {
     }
 
     pub async fn handle_window_activity(&self, event: WindowEvent) {
-        log::info!("{}: {:?}", "handle_window_activity", event);
+        log::trace!("{}: {:?}", "handle_window_activity", event);
         let app_id = self.app_service.handle_window_event(&event).await;
         if let Ok(app_id) = app_id {
             let activity = Activity::create_window_activity(&event, Some(app_id));
             if let Err(err) = self.save_activity(&activity).await {
-                println!("Failed to save window activity: {}", err);
                 log::error!("Failed to save window activity: {}", err);
             }
             let mut app_switch_state = APP_SWITCH_STATE.lock();
             app_switch_state.new_window_activity(activity);
         } else {
-            println!("Failed to get or create app id");
             log::error!("Failed to get or create app id");
         }
     }
@@ -128,7 +126,7 @@ impl ActivityService {
 
         let sender = self.event_sender.clone();
         event_callback_service.register_window_callback(Box::new(move |event| {
-            log::info!("register_window_callback");
+            log::trace!("register_window_callback");
             let _ = sender.send(ActivityEvent::Window(event));
         }));
     }
@@ -181,7 +179,7 @@ impl ActivityService {
         if let Some(activity_state_id) = activity_state.id {
             self.app_service.create_idle_tag(activity_state_id).await
         } else {
-            eprintln!("Cannot create tags: activity state has no ID");
+            log::error!("Cannot create tags: activity state has no ID");
             Err(sqlx::Error::RowNotFound)
         }
     }
@@ -200,27 +198,27 @@ impl ActivityService {
         activity_period: ActivityPeriod,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         // iterate over the activities to create the start, end, context_switches, and activity_state_type
-        log::info!(
+        log::trace!(
             "create_activity_state_from_activities: {}",
             activities.len()
         );
 
         if activities.is_empty() {
-            log::info!("  create_activity_state_from_activities: empty");
+            log::trace!("  create_activity_state_from_activities: empty");
             self.create_idle_activity_state(activity_period).await
         } else {
-            log::info!("  create_activity_state_from_activities: not empty");
+            log::trace!("  create_activity_state_from_activities: not empty");
             // First lock: Get the context switches
             let context_switches = {
                 let app_switch = APP_SWITCH_STATE.lock();
                 app_switch.app_switches.clone()
             }; // lock is released here
-            log::info!("  context_switches: {:?}", context_switches);
+            log::trace!("  context_switches: {:?}", context_switches);
             let result = self
                 .activity_state_repo
                 .create_active_activity_state(context_switches, &activity_period)
                 .await;
-            log::info!("  created activity state");
+            log::trace!("  created activity state");
 
             let activity_state = self
                 .activity_state_service
@@ -235,13 +233,13 @@ impl ActivityService {
                     .await
                     .expect("Failed to create activity state tags");
             } else {
-                eprintln!("Cannot create tags: activity state has no ID");
+                log::error!("Cannot create tags: activity state has no ID");
             }
             {
                 let mut app_switch = APP_SWITCH_STATE.lock();
                 app_switch.reset_app_switches();
             } // lock is released here
-            log::info!("  reset_app_switches");
+            log::trace!("  reset_app_switches");
             result
         }
     }
@@ -269,22 +267,22 @@ impl ActivityService {
             let mut wait_interval = tokio::time::interval(activity_state_interval);
             wait_interval.tick().await;
             loop {
-                log::info!("tick");
+                log::trace!("tick");
                 wait_interval.tick().await;
                 let activities = activity_service_clone
                     .get_activities_since_last_activity_state()
                     .await
                     .unwrap();
-                log::info!("retrieved latest activities");
+                log::trace!("retrieved latest activities");
                 let activity_period = activity_state_service_clone
                     .get_just_completed_activity_state(activity_state_interval)
                     .await;
-                log::info!("retrieved next activity state times");
+                log::trace!("retrieved next activity state times");
                 activity_service_clone
                     .create_activity_state_from_activities(activities, activity_period)
                     .await
                     .expect("Failed to create activity state");
-                log::info!("activity_state_created");
+                log::trace!("activity_state_created");
             }
         });
     }

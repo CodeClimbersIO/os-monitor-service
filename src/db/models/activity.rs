@@ -68,7 +68,7 @@ impl Activity {
     }
 
     pub fn create_window_activity(event: &WindowEvent, app_id: Option<String>) -> Self {
-        log::info!("create_window_activity: {:?}", event);
+        log::trace!("create_window_activity: {:?}", event);
         Self::new(
             ActivityType::Window,
             Some(event.window_title.clone()),

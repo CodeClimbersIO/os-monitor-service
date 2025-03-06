@@ -57,17 +57,17 @@ impl DbManager {
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
         }
-        log::info!("database_url: {}", database_url);
+        log::trace!("database_url: {}", database_url);
 
         // Debug information
-        log::info!("Attempting to open/create database at: {}", db_path);
+        log::trace!("Attempting to open/create database at: {}", db_path);
 
         match std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .open(db_path)
         {
-            Ok(_) => log::info!("Successfully created/opened database file"),
+            Ok(_) => log::trace!("Successfully created/opened database file"),
             Err(e) => log::error!("Error creating/opening database file: {}", e),
         }
 

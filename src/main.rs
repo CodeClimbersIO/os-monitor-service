@@ -14,7 +14,7 @@ use tokio::{self};
 async fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     println!("Starting os-monitor");
-    log::info!("Starting os-monitor");
+    log::trace!("Starting os-monitor");
     dotenv().ok();
 
     let has_permissions = has_accessibility_permissions();

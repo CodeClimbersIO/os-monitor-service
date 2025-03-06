@@ -45,7 +45,7 @@ impl AppService {
         activities: &Vec<Activity>,
         activity_state_id: i64,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
-        log::info!("    Creating Tags From Activities");
+        log::trace!("    Creating Tags From Activities");
         // get apps from activities
         let mut app_ids = activities
             .iter()
@@ -58,7 +58,7 @@ impl AppService {
                 .get_last_activity_by_type(ActivityType::Window)
                 .await
                 .expect("Failed to get last activity");
-            log::info!(
+            log::trace!(
                 "      no window changes, likely were in last activity: {:?}",
                 latest_activity
             );
@@ -74,7 +74,7 @@ impl AppService {
             .await
             .expect("Failed to get apps");
 
-        log::info!("    apps: {:?}", apps);
+        log::trace!("    apps: {:?}", apps);
 
         // get all related tags to those apps
         let mut tags = self
@@ -82,9 +82,9 @@ impl AppService {
             .get_default_tags_by_app(&apps)
             .await
             .expect("Failed to get tags");
-        log::info!("    tags: {:?}", tags);
+        log::trace!("    tags: {:?}", tags);
         if tags.is_empty() {
-            log::info!("      no tags found for apps: {:?}", apps);
+            log::trace!("      no tags found for apps: {:?}", apps);
             tags = vec![self
                 .tag_repo
                 .get_tag_by_name("consuming")
@@ -111,7 +111,7 @@ impl AppService {
         if let Ok(app) = app {
             return Ok(app.id.unwrap());
         } else {
-            log::info!("app not found, creating new app");
+            log::trace!("app not found, creating new app");
             match self.save_app(&raw_app).await {
                 Ok(_) => {
                     if let Err(err) = self.create_default_app_tag(raw_app.id.clone()).await {
@@ -133,10 +133,10 @@ impl AppService {
             .get_tag_by_name("neutral")
             .await
             .expect("Failed to get neutral tag");
-        log::info!("neutral_tag: {:?}", neutral_tag);
+        log::trace!("neutral_tag: {:?}", neutral_tag);
         if let (Some(app_id), Some(tag_id)) = (app_id, neutral_tag.id.clone()) {
-            log::info!("app_id: {:?}", app_id);
-            log::info!("tag_id: {:?}", tag_id);
+            log::trace!("app_id: {:?}", app_id);
+            log::trace!("tag_id: {:?}", tag_id);
             self.tag_repo.create_app_tag(app_id, tag_id, 1.0).await
         } else {
             Err(sqlx::Error::RowNotFound)

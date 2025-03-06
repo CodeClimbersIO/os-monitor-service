@@ -34,16 +34,16 @@ impl ActivityStateService {
                     + Duration::from_secs(5)
                     > OffsetDateTime::now_utc() - interval
                 {
-                    log::info!("start time is last state end time");
+                    log::trace!("start time is last state end time");
                     last_state.end_time.unwrap_or(OffsetDateTime::now_utc())
                 } else {
-                    log::info!("start time is an interval before now");
+                    log::trace!("start time is an interval before now");
                     OffsetDateTime::now_utc() - interval
                 };
                 (start_time, start_time + interval)
             }
             Err(sqlx::Error::RowNotFound) => {
-                log::info!("no last activity state");
+                log::trace!("no last activity state");
                 let now = OffsetDateTime::now_utc();
                 (now - interval, now)
             }
