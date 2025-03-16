@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, external_app_id, created_at, updated_at \n            FROM blocked_activity \n            ORDER BY created_at",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "external_app_id",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 2,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "52b74e8cdd2ab08d65691e9b95e919ce3d99a932d4cfe93c6d61fc4495cef198"
+}

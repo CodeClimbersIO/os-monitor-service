@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO blocked_activity (id, external_app_id, created_at, updated_at) \n            VALUES (?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "5b32fb325ea3eeb7d715b2d599b24a8991ef5bd76aa94341dfb81d50940aaa70"
+}
