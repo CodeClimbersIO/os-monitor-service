@@ -1,13 +1,16 @@
 use std::{sync::Arc, time::Duration};
 
 use once_cell::sync::Lazy;
-use os_monitor::{KeyboardEvent, Monitor, MouseEvent, WindowEvent};
+use os_monitor::{BlockedAppEvent, KeyboardEvent, Monitor, MouseEvent, WindowEvent};
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
 
 use crate::db::{
-    activity_repo::ActivityRepo, activity_state_repo::ActivityStateRepo, db_manager,
-    models::Activity,
+    activity_repo::ActivityRepo,
+    activity_state_repo::ActivityStateRepo,
+    blocked_activity_repo::BlockedActivityRepo,
+    db_manager,
+    models::{Activity, BlockedActivity},
 };
 
 use self::activity_state_service::ActivityPeriod;
@@ -33,6 +36,7 @@ pub struct ActivityService {
     app_service: AppService,
     event_sender: mpsc::UnboundedSender<ActivityEvent>,
     activity_state_service: ActivityStateService,
+    blocked_activity_repo: BlockedActivityRepo,
 }
 
 #[derive(Debug)]
@@ -40,6 +44,7 @@ enum ActivityEvent {
     Keyboard(KeyboardEvent),
     Mouse(MouseEvent),
     Window(WindowEvent),
+    AppBlocked(BlockedAppEvent),
 }
 
 impl ActivityService {
@@ -49,12 +54,14 @@ impl ActivityService {
         let activity_state_repo = ActivityStateRepo::new(pool.clone());
         let activity_state_service = ActivityStateService::new(pool.clone());
         let app_service = AppService::new(pool.clone());
+        let blocked_activity_repo = BlockedActivityRepo::new(pool.clone());
         let service = ActivityService {
             activities_repo,
             activity_state_repo,
             app_service,
             event_sender: sender,
             activity_state_service,
+            blocked_activity_repo,
         };
         let callback_service_clone = service.clone();
         // let activity_state_clone = service.clone();
@@ -70,6 +77,11 @@ impl ActivityService {
                     }
                     ActivityEvent::Window(event) => {
                         callback_service_clone.handle_window_activity(event).await
+                    }
+                    ActivityEvent::AppBlocked(event) => {
+                        callback_service_clone
+                            .handle_app_blocked_activity(event)
+                            .await
                     }
                 }
             }
@@ -109,6 +121,27 @@ impl ActivityService {
         }
     }
 
+    async fn handle_app_blocked_activity(&self, event: BlockedAppEvent) {
+        log::trace!("{}: {:?}", "handle_app_blocked_activity", event);
+
+        for blocked_app in event.blocked_apps {
+            let blocked_activity = BlockedActivity {
+                id: uuid::Uuid::new_v4().to_string(),
+                external_app_id: blocked_app.app_external_id,
+                created_at: Some(time::OffsetDateTime::now_utc()),
+                updated_at: Some(time::OffsetDateTime::now_utc()),
+            };
+
+            if let Err(err) = self
+                .blocked_activity_repo
+                .save_blocked_activity(&blocked_activity)
+                .await
+            {
+                log::error!("Failed to save blocked activity: {}", err);
+            }
+        }
+    }
+
     pub fn register_callbacks(&self, event_callback_service: &Arc<Monitor>) {
         let sender = self.event_sender.clone();
         event_callback_service.register_keyboard_callback(Box::new(move |event| {
@@ -128,6 +161,11 @@ impl ActivityService {
         event_callback_service.register_window_callback(Box::new(move |event| {
             log::trace!("register_window_callback");
             let _ = sender.send(ActivityEvent::Window(event));
+        }));
+        let sender = self.event_sender.clone();
+        event_callback_service.register_app_blocked_callback(Box::new(move |event| {
+            log::trace!("register_app_blocked_callback");
+            let _ = sender.send(ActivityEvent::AppBlocked(event));
         }));
     }
 
@@ -297,7 +335,7 @@ pub async fn start_activities_monitoring(db_path: String) -> ActivityService {
 #[cfg(test)]
 mod tests {
 
-    use os_monitor::{Platform, WindowEvent};
+    use os_monitor::{BlockedApp, Platform, WindowEvent};
     use time::OffsetDateTime;
     use uuid::Uuid;
 
@@ -523,5 +561,56 @@ mod tests {
             .unwrap();
 
         assert_eq!(activity_states.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_handle_app_blocked_activity() {
+        let pool = db_manager::create_test_db().await;
+        let activity_service = ActivityService::new(pool.clone());
+
+        // Create and handle two events with blocked apps
+        let event1 = BlockedAppEvent {
+            blocked_apps: vec![
+                BlockedApp {
+                    app_name: "Blocked App 1".to_string(),
+                    app_external_id: "com.blocked.app1".to_string(),
+                    is_site: false,
+                },
+                BlockedApp {
+                    app_name: "Blocked App 2".to_string(),
+                    app_external_id: "com.blocked.app2".to_string(),
+                    is_site: true,
+                },
+            ],
+        };
+
+        let event2 = BlockedAppEvent {
+            blocked_apps: vec![BlockedApp {
+                app_name: "Blocked App 3".to_string(),
+                app_external_id: "com.blocked.app3".to_string(),
+                is_site: false,
+            }],
+        };
+
+        activity_service.handle_app_blocked_activity(event1).await;
+        activity_service.handle_app_blocked_activity(event2).await;
+
+        // Use the repo to verify the records were saved
+        let saved_records = activity_service
+            .blocked_activity_repo
+            .get_all_blocked_activities()
+            .await
+            .unwrap();
+
+        assert_eq!(saved_records.len(), 3); // Should have 3 records total
+        assert_eq!(saved_records[0].external_app_id, "com.blocked.app1");
+        assert_eq!(saved_records[1].external_app_id, "com.blocked.app2");
+        assert_eq!(saved_records[2].external_app_id, "com.blocked.app3");
+
+        // Verify timestamps are set
+        for record in &saved_records {
+            assert!(record.created_at.is_some());
+            assert!(record.updated_at.is_some());
+        }
     }
 }
