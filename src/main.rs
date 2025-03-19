@@ -30,7 +30,9 @@ async fn main() {
     let icon_data = get_application_icon_data("com.apple.finder");
     println!("icon_data: {}", icon_data.unwrap());
 
-    initialize_monitoring_service(monitor.clone(), db_path).await;
+    tokio::spawn(async move {
+        initialize_monitoring_service(monitor.clone(), db_path).await;
+    });
 
     std::thread::spawn(move || {
         // initialize_monitor(monitor_clone).expect("Failed to initialize monitor");
