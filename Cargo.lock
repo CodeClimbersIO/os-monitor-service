@@ -965,9 +965,9 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
 name = "os-monitor"
-version = "0.3.20"
+version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cea389b448bc14483004708175a8e4b908dd6cdf1cda9a3aebf41dfa4016ffb"
+checksum = "83fe3d4e1e2e7c04cceb4b6f8d8366723b3c73707cdac0f4a3e8e26d288431ca"
 dependencies = [
  "cc",
  "ctrlc",
@@ -980,7 +980,7 @@ dependencies = [
 
 [[package]]
 name = "os-monitor-service"
-version = "0.3.20"
+version = "0.3.21"
 dependencies = [
  "dirs",
  "dotenv",
