@@ -965,9 +965,7 @@ checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
 name = "os-monitor"
-version = "0.4.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97683a3819098ac2fa941221dd591fe73c46e426d9f6f805250f0da304e0e6f6"
+version = "0.4.8"
 dependencies = [
  "cc",
  "ctrlc",
@@ -976,6 +974,7 @@ dependencies = [
  "once_cell",
  "serde",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

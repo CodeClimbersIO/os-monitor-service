@@ -1,9 +1,9 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
+use tokio::sync::broadcast::Receiver;
 
 use once_cell::sync::Lazy;
-use os_monitor::{BlockedAppEvent, KeyboardEvent, Monitor, MouseEvent, WindowEvent};
+use os_monitor::{AppEvent, BlockedAppEvent, KeyboardEvent, MouseEvent, WindowEvent};
 use parking_lot::Mutex;
-use tokio::sync::mpsc;
 
 use crate::db::{
     activity_repo::ActivityRepo,
@@ -34,22 +34,12 @@ pub struct ActivityService {
     activities_repo: ActivityRepo,
     activity_state_repo: ActivityStateRepo,
     app_service: AppService,
-    event_sender: mpsc::UnboundedSender<ActivityEvent>,
     activity_state_service: ActivityStateService,
     blocked_activity_repo: BlockedActivityRepo,
 }
 
-#[derive(Debug)]
-enum ActivityEvent {
-    Keyboard(KeyboardEvent),
-    Mouse(MouseEvent),
-    Window(WindowEvent),
-    AppBlocked(BlockedAppEvent),
-}
-
 impl ActivityService {
     pub fn new(pool: sqlx::SqlitePool) -> Self {
-        let (sender, mut receiver) = mpsc::unbounded_channel();
         let activities_repo = ActivityRepo::new(pool.clone());
         let activity_state_repo = ActivityStateRepo::new(pool.clone());
         let activity_state_service = ActivityStateService::new(pool.clone());
@@ -59,34 +49,9 @@ impl ActivityService {
             activities_repo,
             activity_state_repo,
             app_service,
-            event_sender: sender,
             activity_state_service,
             blocked_activity_repo,
         };
-        let callback_service_clone = service.clone();
-        // let activity_state_clone = service.clone();
-
-        tokio::spawn(async move {
-            while let Some(event) = receiver.recv().await {
-                match event {
-                    ActivityEvent::Keyboard(event) => {
-                        callback_service_clone.handle_keyboard_activity(event).await
-                    }
-                    ActivityEvent::Mouse(event) => {
-                        callback_service_clone.handle_mouse_activity(event).await
-                    }
-                    ActivityEvent::Window(event) => {
-                        callback_service_clone.handle_window_activity(event).await
-                    }
-                    ActivityEvent::AppBlocked(event) => {
-                        callback_service_clone
-                            .handle_app_blocked_activity(event)
-                            .await
-                    }
-                }
-            }
-        });
-
         service
     }
 
@@ -142,31 +107,31 @@ impl ActivityService {
         }
     }
 
-    pub fn register_callbacks(&self, event_callback_service: &Arc<Monitor>) {
-        let sender = self.event_sender.clone();
-        event_callback_service.register_keyboard_callback(Box::new(move |event| {
-            if event {
-                let _ = sender.send(ActivityEvent::Keyboard(KeyboardEvent {}));
+    pub async fn register_receiver(&self, mut event_receiver: Receiver<AppEvent>) {
+        let service_clone = self.clone();
+        tokio::spawn(async move {
+            while let Ok(event) = event_receiver.recv().await {
+                match event {
+                    AppEvent::Mouse(event) => {
+                        if event {
+                            service_clone.handle_mouse_activity(MouseEvent {}).await
+                        }
+                    }
+                    AppEvent::Keyboard(event) => {
+                        if event {
+                            service_clone
+                                .handle_keyboard_activity(KeyboardEvent {})
+                                .await
+                        }
+                    }
+                    AppEvent::Window(event) => service_clone.handle_window_activity(event).await,
+                    AppEvent::AppBlocked(event) => {
+                        service_clone.handle_app_blocked_activity(event).await
+                    }
+                }
             }
-        }));
-
-        let sender = self.event_sender.clone();
-        event_callback_service.register_mouse_callback(Box::new(move |event| {
-            if event {
-                let _ = sender.send(ActivityEvent::Mouse(MouseEvent {}));
-            }
-        }));
-
-        let sender = self.event_sender.clone();
-        event_callback_service.register_window_callback(Box::new(move |event| {
-            log::trace!("register_window_callback");
-            let _ = sender.send(ActivityEvent::Window(event));
-        }));
-        let sender = self.event_sender.clone();
-        event_callback_service.register_app_blocked_callback(Box::new(move |event| {
-            log::trace!("register_app_blocked_callback");
-            let _ = sender.send(ActivityEvent::AppBlocked(event));
-        }));
+            log::warn!("Event receiver channel closed");
+        });
     }
 
     pub async fn save_activity(

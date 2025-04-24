@@ -24,22 +24,20 @@ async fn main() {
         println!("request_permissions: {}", request_permissions);
     }
 
-    let monitor = Arc::new(Monitor::new());
+    let monitor = Monitor::new();
+
     let db_path = db_manager::get_default_db_path();
 
     let icon_data = get_application_icon_data("com.apple.finder");
     println!("icon_data: {}", icon_data.unwrap());
 
     tokio::spawn(async move {
-        initialize_monitoring_service(monitor.clone(), db_path).await;
+        initialize_monitoring_service(Arc::new(monitor), db_path).await;
     });
 
-    std::thread::spawn(move || {
-        // initialize_monitor(monitor_clone).expect("Failed to initialize monitor");
-        loop {
-            detect_changes().expect("Failed to detect changes");
-            std::thread::sleep(std::time::Duration::from_secs(1));
-        }
+    std::thread::spawn(move || loop {
+        detect_changes().expect("Failed to detect changes");
+        std::thread::sleep(std::time::Duration::from_secs(1));
     });
     loop {
         std::thread::sleep(std::time::Duration::from_secs(1));
