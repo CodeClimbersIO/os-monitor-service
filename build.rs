@@ -7,6 +7,11 @@ fn main() {
         println!("cargo:rustc-env=SQLX_OFFLINE=true");
     } else {
         // Load .env file first
+        // log current directory
+        println!(
+            "cargo:warning=Current directory: {}",
+            std::env::current_dir().unwrap().display()
+        );
         if let Err(e) = dotenv::dotenv() {
             println!("cargo:warning=Failed to load .env file: {}", e);
         }
