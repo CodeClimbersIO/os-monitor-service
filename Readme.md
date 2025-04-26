@@ -25,21 +25,31 @@ The monitoring service:
    ```bash
    cargo install sqlx-cli
    ```
-
-4. Create and run migrations:
+4. add DATABASE_URL to your .env
+   ```
+   DATABASE_URL=sqlite:/{home_dir}/.codeclimbers/codeclimbers-desktop.sqlite
+   ```
+5. Create database 
+   ```bash 
+   sqlx database create
+   ```
+6. Create and run migrations:
    ```bash
    # Run all pending migrations
    sqlx migrate run
    ```
-5. Prepare sqlx query type checking:
+7. Prepare sqlx query type checking:
    ```bash
-   cargo sqlx prepare --database-url sqlite:/{home_dir}/.codeclimbers/codeclimbers-desktop.sqlite
+   cargo sqlx prepare
    ```
-6. Build the project:
+8. Build the project:
    ```bash
-   cargo build   ```
-8. Run the service:   ```bash
-   cargo watch -x run  ```
+   cargo build   
+   ```
+9. Run the service:   
+   ```bash
+   cargo watch -x run  
+   ```
 
 Refer to `main.rs` for more information on how the service is run.
 The service will create a SQLite database at `~/.codeclimbers/codeclimbers-desktop.sqlite`
