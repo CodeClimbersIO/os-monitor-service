@@ -1,18 +1,11 @@
 [package]
 name = "os-monitor-service"
-version = "0.4.11"
+version = "0.4.12"
 edition = "2021"
 authors = ["Paul Hovley <rphovley@gmail.com>"]
 description = "OS level monitor for recording window focus and input events from os_monitor"
 license = "MIT"
 repository = "https://github.com/CodeClimbersIO/os-monitor-service"
-
-# Add a features section to control sqlx behavior
-[features]
-default = ["dotenv"]
-# When building for release, enable this feature
-db-check = []
-dotenv = ["dep:dotenv"]
 
 [dependencies]
 dirs = "6.0.0"
