@@ -9,7 +9,7 @@ repository = "https://github.com/CodeClimbersIO/os-monitor-service"
 
 [dependencies]
 dirs = "6.0.0"
-dotenv = { version = "0.15.0", optional = true }
+dotenv = { version = "0.15.0" }
 # Modified sqlx dependency to correctly include offline feature
 sqlx = { version = "0.8.2", features = ["sqlite", "runtime-tokio", "time"] }
 tokio = { version = "1.42.0", features = ["full"] }
