@@ -36,7 +36,7 @@ impl AppService {
             .await
             .expect("Failed to get idle tag");
         self.tag_repo
-            .create_activity_state_tags(activity_state_id, &vec![idle_tag])
+            .create_activity_state_tags(activity_state_id, &vec![(idle_tag, None)])
             .await
     }
 
@@ -74,28 +74,39 @@ impl AppService {
             .await
             .expect("Failed to get apps");
 
-        log::trace!("    apps: {:?}", apps);
+        log::info!("    apps: {:?}", apps);
 
-        // get all related tags to those apps
-        let mut tags = self
-            .tag_repo
-            .get_default_tags_by_app(&apps)
-            .await
-            .expect("Failed to get tags");
-        log::trace!("    tags: {:?}", tags);
-        if tags.is_empty() {
+        // Create tag-app pairs by getting tags for each app individually
+        let mut tag_app_pairs = Vec::new();
+
+        for app in &apps {
+            let app_tags = self
+                .tag_repo
+                .get_default_tags_by_app(&vec![app.clone()])
+                .await
+                .expect("Failed to get tags");
+
+            for tag in app_tags {
+                tag_app_pairs.push((tag, app.id.clone()));
+            }
+        }
+
+        log::info!("    tag_app_pairs: {:?}", tag_app_pairs);
+
+        if tag_app_pairs.is_empty() {
             log::trace!("      no tags found for apps: {:?}", apps);
-            tags = vec![self
+            let consuming_tag = self
                 .tag_repo
                 .get_tag_by_name("consuming")
                 .await
-                .expect("Failed to get consuming tag")];
+                .expect("Failed to get consuming tag");
+            tag_app_pairs.push((consuming_tag, None));
         }
 
         // for each tag, create a tag_activity_state_mapping
         return self
             .tag_repo
-            .create_activity_state_tags(activity_state_id, &tags)
+            .create_activity_state_tags(activity_state_id, &tag_app_pairs)
             .await;
     }
 
@@ -229,6 +240,14 @@ mod tests {
         };
         activity_service.handle_window_activity(event).await;
         let event = WindowEvent {
+            app_name: "Google Chrome".to_string(),
+            window_title: "X - Twitter".to_string(),
+            url: Some("x.com".to_string()),
+            platform: OsPlatform::Mac,
+            bundle_id: None,
+        };
+        activity_service.handle_window_activity(event).await;
+        let event = WindowEvent {
             app_name: "Ebb".to_string(),
             window_title: "main".to_string(),
             url: None,
@@ -263,6 +282,6 @@ mod tests {
             .await
             .expect("Failed to get tags");
 
-        assert_eq!(tags.len(), 3);
+        assert_eq!(tags.len(), 5);
     }
 }
