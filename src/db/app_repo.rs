@@ -1,4 +1,4 @@
-use super::models::App;
+use super::models::{App, AppTag};
 #[derive(Clone)]
 pub struct AppRepo {
     pool: sqlx::SqlitePool,
@@ -51,6 +51,39 @@ impl AppRepo {
         )
         .fetch_one(&mut *conn)
         .await
+    }
+
+    pub async fn get_app_tag_by_app_ids(
+        &self,
+        ids: &Vec<String>,
+    ) -> Result<Vec<AppTag>, sqlx::Error> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut conn = self.pool.acquire().await?;
+
+        // Create the parameterized query with the correct number of placeholders
+        let placeholders = std::iter::repeat("?")
+            .take(ids.len())
+            .collect::<Vec<_>>()
+            .join(",");
+
+        let query = format!(
+            r#"SELECT id, app_id, tag_id, weight, created_at, updated_at
+            FROM app_tag WHERE app_id IN ({})"#,
+            placeholders
+        );
+
+        // Build the query with dynamic parameters
+        let mut query = sqlx::query_as::<_, AppTag>(&query);
+
+        // Bind each parameter
+        for id in ids {
+            query = query.bind(id);
+        }
+
+        query.fetch_all(&mut *conn).await
     }
 
     pub async fn get_apps_by_ids(&self, ids: &Vec<String>) -> Result<Vec<App>, sqlx::Error> {

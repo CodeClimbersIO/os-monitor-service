@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use sqlx::SqlitePool;
 
-use super::models::{App, Tag};
+use super::models::{AppTag, Tag};
 
 #[derive(Clone)]
 pub struct TagRepo {
@@ -22,11 +22,14 @@ impl TagRepo {
             .await
     }
 
-    pub async fn get_default_tags_by_app(&self, apps: &Vec<App>) -> Result<Vec<Tag>, sqlx::Error> {
+    pub async fn get_default_tags_by_app_tags(
+        &self,
+        app_tags: &Vec<AppTag>,
+    ) -> Result<Vec<Tag>, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
-        let app_ids = apps
+        let app_ids = app_tags
             .iter()
-            .filter_map(|app| app.id.clone())
+            .filter_map(|app_tag| Some(app_tag.app_id.clone()))
             .collect::<Vec<String>>();
         let placeholders = std::iter::repeat("?")
             .take(app_ids.len())
@@ -94,6 +97,39 @@ impl TagRepo {
         query.execute(&mut *conn).await
     }
 
+    pub async fn create_activity_state_tags_with_app_tags(
+        &self,
+        activity_state_id: i64,
+        app_tags: &Vec<AppTag>,
+    ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
+        let mut conn = self.pool.acquire().await?;
+
+        // Create unique pairs of (app_tag.id, app_tag.tag_id)
+        let unique_tags = app_tags
+            .iter()
+            .map(|app_tag| (app_tag.id.clone(), app_tag.tag_id.clone()))
+            .collect::<HashSet<(Option<String>, String)>>();
+
+        let placeholders = std::iter::repeat("(?, ?, ?)")
+            .take(unique_tags.len())
+            .collect::<Vec<_>>()
+            .join(",");
+
+        let query = format!(
+            r#"
+            INSERT INTO activity_state_tag (activity_state_id, app_tag_id, tag_id)
+            VALUES {}"#,
+            placeholders
+        );
+
+        let mut query = sqlx::query(&query);
+        for (app_tag_id, tag_id) in unique_tags {
+            query = query.bind(activity_state_id).bind(app_tag_id).bind(tag_id);
+        }
+
+        query.execute(&mut *conn).await
+    }
+
     pub async fn create_app_tag(
         &self,
         app_id: String,
@@ -142,4 +178,29 @@ impl TagRepo {
         .fetch_all(&mut *conn)
         .await
     }
+}
+
+#[cfg(test)]
+mod tests {
+    // use crate::db::{db_manager, models::AppTag, tag_repo::TagRepo};
+
+    // #[tokio::test]
+    // async fn test_create_activity_state_tags() {
+    //     let pool = db_manager::create_test_db().await;
+    //     let tag_repo = TagRepo::new(pool);
+
+    //     let app_tags = vec![AppTag::__create_test_app_tag(
+    //         "".to_string(),
+    //         "".to_string(),
+    //     )];
+
+    //     let activity_state_id = 1;
+
+    //     let res = tag_repo
+    //         .create_activity_state_tags_with_app_tags(activity_state_id, &app_tags)
+    //         .await;
+
+    //     // let activity = activity_service.get_activity(1).await.unwrap();
+    //     assert_eq!(true, true);
+    // }
 }

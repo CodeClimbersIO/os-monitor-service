@@ -1,4 +1,3 @@
-use os_monitor::WindowEvent;
 use sqlx::Row;
 use time::OffsetDateTime;
 
@@ -10,6 +9,20 @@ pub struct AppTag {
     pub weight: f32,
     pub created_at: Option<OffsetDateTime>,
     pub updated_at: Option<OffsetDateTime>,
+}
+
+impl AppTag {
+    #[cfg(test)]
+    pub fn __create_test_app_tag(app_id: String, tag_id: String) -> AppTag {
+        AppTag {
+            id: Some(uuid::Uuid::new_v4().to_string()),
+            app_id,
+            tag_id,
+            weight: 0.0,
+            created_at: None,
+            updated_at: None,
+        }
+    }
 }
 
 impl<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> for AppTag {

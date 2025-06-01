@@ -68,34 +68,35 @@ impl AppService {
             }
         }
 
-        let apps = self
+        let app_tags = self
             .app_repo
-            .get_apps_by_ids(&app_ids)
+            .get_app_tag_by_app_ids(&app_ids)
             .await
             .expect("Failed to get apps");
 
-        log::trace!("    apps: {:?}", apps);
+        log::trace!("    apps: {:?}", app_tags);
 
         // get all related tags to those apps
-        let mut tags = self
-            .tag_repo
-            .get_default_tags_by_app(&apps)
-            .await
-            .expect("Failed to get tags");
-        log::trace!("    tags: {:?}", tags);
-        if tags.is_empty() {
-            log::trace!("      no tags found for apps: {:?}", apps);
-            tags = vec![self
-                .tag_repo
-                .get_tag_by_name("consuming")
-                .await
-                .expect("Failed to get consuming tag")];
-        }
+        // let mut tags = self
+        //     .tag_repo
+        //     .get_default_tags_by_app_tags(&app_tags)
+        //     .await
+        //     .expect("Failed to get tags");
+        // log::trace!("    tags: {:?}", tags);
+        // if tags.is_empty() {
+        //     // instead of getting the default tag of consuming, we should get a
+        //     log::trace!("      no tags found for app_tags: {:?}", app_tags);
+        //     tags = vec![self
+        //         .tag_repo
+        //         .get_tag_by_name("consuming")
+        //         .await
+        //         .expect("Failed to get consuming tag")];
+        // }
 
         // for each tag, create a tag_activity_state_mapping
         return self
             .tag_repo
-            .create_activity_state_tags(activity_state_id, &tags)
+            .create_activity_state_tags_with_app_tags(activity_state_id, &app_tags)
             .await;
     }
 
