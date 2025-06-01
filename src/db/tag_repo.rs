@@ -1,5 +1,8 @@
-use super::models::{App, Tag};
+use std::collections::HashSet;
+
 use sqlx::SqlitePool;
+
+use super::models::{App, Tag};
 
 #[derive(Clone)]
 pub struct TagRepo {
@@ -63,37 +66,29 @@ impl TagRepo {
     pub async fn create_activity_state_tags(
         &self,
         activity_state_id: i64,
-        tag_app_pairs: &Vec<(Tag, Option<String>)>,
+        tags: &Vec<Tag>,
     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
         let mut conn = self.pool.acquire().await?;
-
-        // Deduplicate by (tag_id, app_id) combination
-        let unique_pairs: std::collections::HashSet<(String, Option<String>)> = tag_app_pairs
+        let unique_tags = tags
             .iter()
-            .filter_map(|(tag, app_id)| {
-                tag.id
-                    .as_ref()
-                    .map(|tag_id| (tag_id.clone(), app_id.clone()))
-            })
-            .collect();
+            .filter_map(|tag| tag.id.clone())
+            .collect::<HashSet<String>>();
 
-        let placeholders = std::iter::repeat("(?, ?, ?)")
-            .take(unique_pairs.len())
+        let placeholders = std::iter::repeat("(?, ?)")
+            .take(unique_tags.len())
             .collect::<Vec<_>>()
             .join(",");
 
-        println!("placeholders: {}", placeholders);
-
         let query = format!(
             r#"
-            INSERT INTO activity_state_tag (activity_state_id, tag_id, app_id)
+            INSERT INTO activity_state_tag (activity_state_id, tag_id)
             VALUES {}"#,
             placeholders
         );
 
         let mut query = sqlx::query(&query);
-        for (tag_id, app_id) in unique_pairs {
-            query = query.bind(activity_state_id).bind(tag_id).bind(app_id);
+        for tag in unique_tags {
+            query = query.bind(activity_state_id).bind(tag);
         }
 
         query.execute(&mut *conn).await
