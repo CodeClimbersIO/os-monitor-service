@@ -76,23 +76,6 @@ impl AppService {
 
         log::trace!("    apps: {:?}", app_tags);
 
-        // get all related tags to those apps
-        // let mut tags = self
-        //     .tag_repo
-        //     .get_default_tags_by_app_tags(&app_tags)
-        //     .await
-        //     .expect("Failed to get tags");
-        // log::trace!("    tags: {:?}", tags);
-        // if tags.is_empty() {
-        //     // instead of getting the default tag of consuming, we should get a
-        //     log::trace!("      no tags found for app_tags: {:?}", app_tags);
-        //     tags = vec![self
-        //         .tag_repo
-        //         .get_tag_by_name("consuming")
-        //         .await
-        //         .expect("Failed to get consuming tag")];
-        // }
-
         // for each tag, create a tag_activity_state_mapping
         return self
             .tag_repo
@@ -187,6 +170,55 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    async fn test_create_tags_from_activities_only_one_activity() {
+        let pool = db_manager::create_test_db().await;
+        let app_service = AppService::new(pool.clone());
+
+        let activity_state_repo = ActivityStateRepo::new(pool.clone());
+        let activity_state = ActivityState {
+            id: None,
+            state: ActivityStateType::Inactive,
+            app_switches: 0,
+            start_time: Some(OffsetDateTime::now_utc()),
+            end_time: Some(OffsetDateTime::now_utc()),
+            created_at: Some(OffsetDateTime::now_utc()),
+        };
+        activity_state_repo
+            .save_activity_state(&activity_state)
+            .await
+            .expect("Failed to save activity state");
+        let activity_service = ActivityService::new(pool.clone());
+        let event = WindowEvent {
+            app_name: "Cursor".to_string(),
+            window_title: "main.rs - app-codeclimbers".to_string(),
+            url: None,
+            platform: OsPlatform::Mac,
+            bundle_id: Some("com.todesktop.230313mzl4w4u92".to_string()),
+        };
+        activity_service.handle_window_activity(event).await;
+
+        let activities = activity_service
+            .get_activities_since_last_activity_state()
+            .await
+            .expect("Failed to get activities");
+        let activity_state = activity_state_repo
+            .get_last_activity_state()
+            .await
+            .expect("Failed to get activity state");
+        app_service
+            .create_tags_from_activities(&activities, activity_state.id.unwrap())
+            .await
+            .expect("Failed to create tags");
+
+        let tags = app_service
+            .get_tags_for_activity_state(activity_state.id.unwrap())
+            .await
+            .expect("Failed to get tags");
+
+        assert_eq!(tags.len(), 2); // just cursor should end up with the tags for creating and coding
+    }
+
+    #[tokio::test]
     async fn test_create_tags_from_activities_only_with_app_ids() {
         let pool = db_manager::create_test_db().await;
         let app_service = AppService::new(pool.clone());
@@ -264,6 +296,6 @@ mod tests {
             .await
             .expect("Failed to get tags");
 
-        assert_eq!(tags.len(), 3);
+        assert_eq!(tags.len(), 10);
     }
 }

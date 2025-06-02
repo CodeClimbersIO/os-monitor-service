@@ -115,6 +115,12 @@ impl TagRepo {
             .collect::<Vec<_>>()
             .join(",");
 
+        if unique_tags.is_empty() {
+            println!("DEBUG: No app_tags to insert, returning early");
+            // Return a successful result but with 0 rows affected by executing a no-op query
+            return sqlx::query("SELECT 1 WHERE 0").execute(&mut *conn).await;
+        }
+
         let query = format!(
             r#"
             INSERT INTO activity_state_tag (activity_state_id, app_tag_id, tag_id)
