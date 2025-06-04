@@ -1,5 +1,5 @@
 extern crate dotenv;
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use dotenv::dotenv;
 
@@ -7,7 +7,7 @@ use os_monitor::{
     detect_changes, get_application_icon_data, has_accessibility_permissions,
     request_accessibility_permissions, Monitor,
 };
-use os_monitor_service::{db::db_manager, initialize_monitoring_service};
+use os_monitor_service::{db::db_manager, MonitoringConfig};
 use tokio::{self};
 
 #[tokio::main]
@@ -32,7 +32,10 @@ async fn main() {
     println!("icon_data: {}", icon_data.unwrap());
 
     tokio::spawn(async move {
-        initialize_monitoring_service(Arc::new(monitor), db_path).await;
+        MonitoringConfig::new(Arc::new(monitor), db_path)
+            .with_interval(Duration::from_secs(60))
+            .initialize()
+            .await;
     });
 
     std::thread::spawn(move || loop {

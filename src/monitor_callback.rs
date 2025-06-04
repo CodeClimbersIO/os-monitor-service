@@ -4,17 +4,36 @@ use std::time::Duration;
 
 use crate::services;
 
-static ACTIVITY_STATE_INTERVAL: Duration = Duration::from_secs(30); // every 30 seconds
+pub struct MonitoringConfig {
+    monitor: Arc<Monitor>,
+    db_path: String,
+    activity_state_interval: Duration,
+}
 
-pub async fn initialize_monitoring_service(monitor: Arc<Monitor>, db_path: String) {
-    let activity_service =
-        Arc::new(services::activities_service::start_activities_monitoring(db_path).await);
-    activity_service
-        .register_receiver(monitor.subscribe())
-        .await;
-    activity_service.start_activity_state_loop(ACTIVITY_STATE_INTERVAL);
+impl MonitoringConfig {
+    pub fn new(monitor: Arc<Monitor>, db_path: String) -> Self {
+        Self {
+            monitor,
+            db_path,
+            activity_state_interval: Duration::from_secs(60),
+        }
+    }
 
-    std::thread::spawn(move || {
-        start_monitoring(monitor);
-    });
+    pub fn with_interval(mut self, interval: Duration) -> Self {
+        self.activity_state_interval = interval;
+        self
+    }
+
+    pub async fn initialize(self) {
+        let activity_service =
+            Arc::new(services::activities_service::start_activities_monitoring(self.db_path).await);
+        activity_service
+            .register_receiver(self.monitor.subscribe())
+            .await;
+        activity_service.start_activity_state_loop(self.activity_state_interval);
+
+        std::thread::spawn(move || {
+            start_monitoring(self.monitor);
+        });
+    }
 }
